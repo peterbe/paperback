@@ -1,23 +1,35 @@
 {
-  "name": "paperback",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "firebase": "^4.4.0",
-    "react": "^15.6.1",
-    "react-dom": "^15.6.1",
-    "react-router-dom": "^4.2.2",
-    "react-scripts": "1.0.13"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
-  },
-  "devDependencies": {
-    "husky": "^0.14.3",
-    "lint-staged": "^4.2.1",
-    "prettier": "^1.7.0"
-  }
+    "name": "paperback",
+    "version": "0.1.0",
+    "private": true,
+    "dependencies": {
+        "firebase": "^4.4.0",
+        "react": "^15.6.1",
+        "react-dom": "^15.6.1",
+        "react-router-dom": "^4.2.2",
+        "react-scripts": "1.0.13"
+    },
+    "scripts": {
+        "start": "react-scripts start",
+        "build": "react-scripts build",
+        "test": "react-scripts test --env=jsdom",
+        "eject": "react-scripts eject",
+        "devserver": "node devserver.js"
+    },
+    "devDependencies": {
+        "aws-lib": "^0.3.0",
+        "body-parser": "^1.18.1",
+        "express": "^4.15.4",
+        "husky": "^0.14.3",
+        "lint-staged": "^4.2.1",
+        "node-env-file": "^0.1.8",
+        "prettier": "^1.7.0"
+    },
+    "lint-staged": {
+        "src/**/*.{js,jsx,json,css}": [
+            "prettier --single-quote --no-semi --write",
+            "git add"
+        ]
+    },
+    "proxy": "http://localhost:4000"
 }
