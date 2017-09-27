@@ -51,13 +51,15 @@ class Search extends Component {
     event.preventDefault()
     const q = this.refs.search.value.trim()
     console.log('Search for', q)
-    let url = '/api/search'
+    const serverPrefix = process.env.REACT_APP_SERVER_PREFIX
+    let url = serverPrefix + '/search'
     const asin = extractASINFromSearch(q)
     if (asin) {
       url += `?itemid=${encodeURIComponent(asin)}`
     } else {
       url += `?keywords=${encodeURIComponent(q)}`
     }
+    console.log('Search URL:', url);
 
     this.setState({ loading: true })
     fetch(url).then(r => {
