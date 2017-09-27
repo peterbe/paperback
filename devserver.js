@@ -36,23 +36,34 @@ const cache = {}
 
 app.get('/api/search', function(req, res) {
   const keywords = req.query.keywords
-  if (keywords) {
-    if (cache[keywords]) {
-      console.log('Cache hit!', keywords);
+  const itemid = req.query.itemid
+
+  if (keywords || itemid) {
+    if (keywords && cache[keywords]) {
+      console.log('Cache hit (keywords)!', keywords)
       res.json(cache[keywords])
+    } else if (itemid && cache[itemid]) {
+      console.log('Cache hit (itemid)!', itemid)
+      res.json(cache[itemid])
     } else {
-      search(prodAdv, keywords, (err, result) => {
+      const params = { keywords, itemid }
+      search(prodAdv, params, (err, result) => {
         if (err) {
           res.status(500).json(err)
         } else {
-          console.log(`Successfully found something for '${keywords}'`)
-          cache[keywords] = result
+          if (keywords) {
+            console.log(`Successfully found something for '${keywords}'`)
+            cache[keywords] = result
+          } else if (itemid) {
+            console.log(`Successfully found something for '${itemid}'`)
+            cache[itemid] = result
+          }
           res.json(result)
         }
       })
     }
   } else {
-    return res.status(400).json({ error: "'keywords' missing" })
+    return res.status(400).json({ error: "'keywords' or 'itemid' missing" })
   }
 })
 

@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React from 'react'
 import { BrowserRouter as Router, Route } from 'react-router-dom'
 import * as firebase from 'firebase/app'
 import 'firebase/auth'
@@ -7,13 +7,24 @@ import Home from './Home'
 
 import './App.css'
 
-class App extends Component {
+import { randomString } from './Utils'
+
+class App extends React.Component {
   constructor(props) {
     super(props)
 
     this.state = {
       currentUser: null,
+      yourBooks: [],
+      errorMessage: null,
+      errorCode: null
     }
+
+    // This is a cache so we can determine whether to add the book
+    // when a user adds one.
+    // If it's in this cache, we can just add a new entry directly to
+    // '/user-books/{user.uid}/'
+    this._allKnownBooks = {}
 
     // Initialize Firebase
     const config = {
@@ -31,31 +42,27 @@ class App extends Component {
     this.database = firebaseApp.database()
   }
 
+  componentDidMount() {
+    // create a mapping of ALL books we have already
+    this.database.ref('/books').on('value', snapshot => {
+      snapshot.forEach(child => {
+        this._allKnownBooks[child.val().ASIN] = child.key
+      })
+    })
+  }
+
   onAuthStateChanged = user => {
     console.log('Current User:', user)
     if (user) {
-      this.setState({ currentUser: user })
-      if (sessionStorage.getItem('picked')) {
-        const item = JSON.parse(sessionStorage.getItem('picked'))
-        // const database = firebase.database()
-        const newPostKey = this.database.ref().child('posts').push().key;
-        const updates = {};
-        // console.log('ITEM', item);
-        updates[`/books/${newPostKey}`] = {
-          Title: item.ItemAttributes.Title,
-          ASIN: item.ASIN,
-          startedAt: firebase.database.ServerValue.TIMESTAMP,
-          Raw: JSON.stringify(item)
-        };
-        updates[`/user-books/${newPostKey}/${user.uid}`] = new Date()
-        this.database.ref().update(updates).then(() => {
-          sessionStorage.removeItem('picked')
-        })
-        .catch((error) => {
-          const errorCode = error.code
-          const errorMessage = error.message
-          console.error('errorCode:', errorCode)
-          console.error('errorMessage:', errorMessage)
+      this.setState({ currentUser: user }, () => {
+        this._fetchYourBooks()
+      })
+      if (this._picked) {
+        const item = this._picked
+        this.addItem(item).then(() => {
+          // this._fetchYourBooks()
+          delete this._picked
+          // sessionStorage.removeItem('picked')
         })
       }
     } else {
@@ -63,14 +70,174 @@ class App extends Component {
     }
   }
 
+  _fetchYourBooks = () => {
+    if (!this.state.currentUser) {
+      throw new Error('Not logged in')
+    }
+    const ref = this.database.ref(`/user-books/${this.state.currentUser.uid}`)
+    // const yourBooks = []
+    return ref.once('value', snapshot => {
+      // const yourBooks = []
+      snapshot.forEach(childSnapshot => {
+        var childKey = childSnapshot.key
+        this.database
+          .ref(`/books/${childKey}`)
+          .orderByChild('createdAt')
+          .once('value', bookSnapshot => {
+            const book = bookSnapshot.val()
+            book.key = bookSnapshot.key
+            book.item = JSON.parse(book.Raw)
+            delete book.Raw
+            // yourBooks.push(book)
+            this.setState((state, props) => {
+              return { yourBooks: [...state.yourBooks, book] }
+            })
+          })
+      })
+    })
+    // return ref.on('child_added', snapshot => {
+    //   console.log(snapshot.key, snapshot.val());
+    // })
+    // ref.once('value').then(snapshot => {
+    //   // const yourBooks = this.state.yourBooks
+    //   const value = snapshot.val()
+    //   if (value) {
+    //     // Only add it if it's not already there.
+    //     // console.log('VALUE:', value)
+    //     // console.log('EXISTING:', yourBooks.map(a => a.ASIN))
+    //     yourBooks.push(value)
+    //     this.setState({ yourBooks: yourBooks })
+    //   }
+    // })
+  }
+
+  addItem = (item, email = '') => {
+    if (!this.state.currentUser) {
+      const auth = firebase.auth()
+      const password = randomString()
+      return auth
+        .createUserWithEmailAndPassword(email, password)
+        .then(() => {
+          // Store this picked item temporarily inside 'this'
+          // since createUserWithEmailAndPassword will
+          // trigger onAuthStateChanged and that's when it's the right
+          // time to add it to the user-books ref.
+          this._picked = item
+        })
+        .catch(error => {
+          // Handle Errors here.
+          const errorCode = error.code
+          const errorMessage = error.message
+          console.log('errorCode:', errorCode)
+          console.log('errorMessage:', errorMessage)
+          this.setState({
+            errorCode: errorCode,
+            errorMessage: errorMessage
+          })
+        })
+    } else {
+      // const ref = this.database.ref('/books')
+      // // We need to decide whether to first add the book first.
+      // let newPostKey
+      // if (this._allKnownBooks[item.ASIN]) {
+      //   newPostKey = this._allKnownBooks[item.ASIN]
+      // } else {
+      //
+      // }
+      // const newPostKey = ref.push().key
+      const newPostKey =
+        this._allKnownBooks[item.ASIN] || this.database.ref('/books').push().key
+      return this.database
+        .ref(`/books/${newPostKey}`)
+        .set({
+          Title: item.ItemAttributes.Title,
+          ASIN: item.ASIN,
+          createdAt: firebase.database.ServerValue.TIMESTAMP,
+          Raw: JSON.stringify(item)
+        })
+        .then(() => {
+          const user = this.state.currentUser
+          return this.database
+            .ref(`/user-books/${user.uid}/${newPostKey}`)
+            .push()
+            .set({
+              startedAt: firebase.database.ServerValue.TIMESTAMP
+            })
+            .then(() => {
+              return this._fetchYourBooks()
+            })
+            .catch(error => {
+              const errorCode = error.code
+              const errorMessage = error.message
+              console.error('errorCode:', errorCode)
+              console.error('errorMessage:', errorMessage)
+              this.setState({
+                errorCode: errorCode,
+                errorMessage: errorMessage
+              })
+            })
+        })
+        .catch(error => {
+          const errorCode = error.code
+          const errorMessage = error.message
+          console.error('errorCode:', errorCode)
+          console.error('errorMessage:', errorMessage)
+          this.setState({
+            errorCode: errorCode,
+            errorMessage: errorMessage
+          })
+        })
+    }
+  }
+
+  removeItem = book => {
+    const user = this.state.currentUser
+    this.database
+      .ref(`/user-books/${user.uid}/${book.key}`)
+      .remove()
+      .then(() => {
+        this._fetchYourBooks()
+      })
+  }
+
   render() {
     return (
       <Router>
         <div>
           <section className="section">
-            <Route exact path="/" render={props => {
-              return <Home {...props} currentUser={this.state.currentUser}/>
-            }} />
+            {this.state.errorMessage && (
+              <article className="message is-danger">
+                <div className="message-body">
+                  <p>
+                    <b>Unable to register your email due to an error.</b>
+                  </p>
+                  <p>
+                    <b>Message:</b> <code>{this.state.errorMessage}</code>
+                    <br />
+                    <b>Code:</b> <code>{this.state.errorCode}</code>
+                  </p>
+                </div>
+              </article>
+            )}
+
+            <Route
+              exact
+              path="/"
+              render={props => {
+                return (
+                  <Home
+                    {...props}
+                    currentUser={this.state.currentUser}
+                    addItem={this.addItem}
+                  />
+                )
+              }}
+            />
+
+            <YourBooks
+              removeItem={this.removeItem}
+              books={this.state.yourBooks}
+            />
           </section>
         </div>
       </Router>
@@ -79,3 +246,113 @@ class App extends Component {
 }
 
 export default App
+
+class YourBooks extends React.PureComponent {
+  render() {
+    const { books } = this.props
+    if (!books.length) {
+      return null
+    }
+    return (
+      <div className="your-books container">
+        <h3 className="title">
+          You're watching {books.length} book{books.length === 1 ? '' : 's'}
+        </h3>
+        {books.map(book => (
+          <YourBook
+            removeItem={this.props.removeItem}
+            key={book.ASIN}
+            book={book}
+          />
+        ))}
+      </div>
+    )
+  }
+}
+
+class YourBook extends React.PureComponent {
+  constructor(props) {
+    super(props)
+
+    this.state = {
+      confirm: false
+    }
+  }
+
+  deleteItem = event => {
+    event.preventDefault()
+    this.props.removeItem(this.props.book)
+  }
+
+  deleteItemConfirm = event => {
+    event.preventDefault()
+    this.setState({ confirm: true })
+  }
+
+  cancelConfirmation = event => {
+    event.preventDefault()
+    this.setState({ confirm: false })
+  }
+
+  render() {
+    const { book } = this.props
+    const item = book.item
+    return (
+      <article className="media">
+        <figure className="media-left">
+          <p className="image is-128x128">
+            <img src={item.MediumImage.URL} alt="Book cover" />
+          </p>
+        </figure>
+        <div className="media-content">
+          <div className="content">
+            <h3 className="title">
+              <strong>{book.Title}</strong>{' '}
+              <span className="tag is-medium">
+                {item.ItemAttributes.ListPrice
+                  ? item.ItemAttributes.ListPrice.FormattedPrice
+                  : 'no price yet'}
+              </span>
+            </h3>
+            <h5 className="subtitle">
+              By <b>{item.ItemAttributes.Author}</b>,{' '}
+              {item.ItemAttributes.NumberOfPages} pages, published{' '}
+              {item.ItemAttributes.PublicationDate}
+            </h5>
+          </div>
+        </div>
+        <div className="media-right">
+          {this.state.confirm ? (
+            <Confirmation
+              onCancel={this.cancelConfirmation}
+              onConfirm={this.deleteItem}
+            />
+          ) : (
+            <button className="delete" onClick={this.deleteItemConfirm} />
+          )}
+        </div>
+      </article>
+    )
+  }
+}
+
+const Confirmation = ({ onCancel, onConfirm }) => {
+  return (
+    <div>
+      <button
+        type="button"
+        className="button is-small is-primary"
+        onClick={onConfirm}
+      >
+        Yes
+      </button>
+      <button
+        type="button"
+        className="button is-small is-light"
+        onClick={onCancel}
+      >
+        Cancel
+      </button>
+    </div>
+  )
+}
