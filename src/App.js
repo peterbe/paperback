@@ -226,6 +226,20 @@ class App extends React.Component {
     return (
       <Router>
         <div>
+          <nav className="navbar" aria-label="main navigation">
+            <div className="navbar-brand">
+              <Link to="/" className="navbar-item">
+                Paperback Watch
+              </Link>
+
+              <button className="button navbar-burger">
+                <span></span>
+                <span></span>
+                <span></span>
+              </button>
+            </div>
+          </nav>
+
           <section className="section">
             {this.state.remoteError && (
               <RemoteMessage error={this.state.remoteError} />

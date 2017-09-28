@@ -19,10 +19,24 @@ class Home extends Component {
 
   render() {
     return (
+      <div>
+      <section className="hero">
+        <div className="hero-body">
+          <div className="container">
+            <h1 className="title">
+              Paperback Watch
+            </h1>
+            <h2 className="subtitle">
+              Get Notified When A Book You Want Becomes Available in <b>Paperback</b> on <b>Amazon.com</b>
+            </h2>
+          </div>
+        </div>
+      </section>
       <Search
         currentUser={this.props.currentUser}
         addItem={this.props.addItem}
       />
+    </div>
     )
   }
 }
@@ -49,10 +63,11 @@ class Search extends Component {
     this.state = {
       search: '',
       loading: false,
-      fetchError: null
+      fetchError: null,
+      searchResult: null,
     }
 
-    this.searchThrottled = throttle(1200, this.search)
+    this.searchThrottled = throttle(1600, this.search)
   }
 
   submit = event => {
@@ -95,7 +110,12 @@ class Search extends Component {
   onChangeSearch = event => {
     // autocomplete?
     const q = this.refs.search.value.trim()
-    this.searchThrottled(q)
+    if (q) {
+      this.searchThrottled(q)
+    } else if (this.state.searchResult) {
+      this.setState({searchResult: null})
+    }
+
   }
 
   render() {
