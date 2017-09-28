@@ -1,10 +1,10 @@
 import React, { Component } from 'react'
+import { Link } from 'react-router-dom'
 import { throttle } from 'throttle-debounce'
-import { thousandFormat } from './Utils'
+import { thousandFormat, getAllBindings } from './Utils'
 import book256 from './book-256.png'
+import GetNotified from './GetNotified'
 import './Home.css'
-
-import { IGNORE_BINDINGS } from './Constants'
 
 class Home extends Component {
   constructor(props) {
@@ -148,7 +148,7 @@ class Search extends Component {
 
 class SearchResult extends Component {
   render() {
-    const { result, currentUser } = this.props
+    const { result } = this.props
     // If it was an ItemLookup, the result.Items.Item is NOT an array
     if (result.Items.Request.Errors) {
       return <SearchResultError error={result.Items.Request.Errors.Error} />
@@ -174,23 +174,24 @@ class SearchResult extends Component {
           {thousandFormat(result.Items.TotalResults)} books found
         </h5>
         {result.Items.Item.map(item => {
-          let allBindings = []
-          if (item.AlternateVersions) {
-            allBindings = item.AlternateVersions.AlternateVersion
-            if (Array.isArray(allBindings)) {
-              allBindings = Array.from(
-                new Set(allBindings.map(each => each.Binding))
-              )
-            } else {
-              allBindings = [allBindings.Binding]
-            }
-          } else {
-            allBindings.push(item.ItemAttributes.Binding)
-          }
-          // Filter out junk/uninteresting binding formats
-          allBindings = allBindings.filter(b => {
-            return b && !IGNORE_BINDINGS.includes(b)
-          })
+          // let allBindings = []
+          // if (item.AlternateVersions) {
+          //   allBindings = item.AlternateVersions.AlternateVersion
+          //   if (Array.isArray(allBindings)) {
+          //     allBindings = Array.from(
+          //       new Set(allBindings.map(each => each.Binding))
+          //     )
+          //   } else {
+          //     allBindings = [allBindings.Binding]
+          //   }
+          // } else {
+          //   allBindings.push(item.ItemAttributes.Binding)
+          // }
+          // // Filter out junk/uninteresting binding formats
+          // allBindings = allBindings.filter(b => {
+          //   return b && !IGNORE_BINDINGS.includes(b)
+          // })
+          const allBindings = getAllBindings(item)
           const inPaperback = allBindings.includes('Paperback')
           const otherBindings = allBindings.filter(
             binding => binding !== 'Paperback'
@@ -199,13 +200,16 @@ class SearchResult extends Component {
           return (
             <div className="columns" key={item.ASIN}>
               <div className="column is-one-quarter" style={{ maxWidth: 300 }}>
-                <a title={item.ItemAttributes.Title} href={item.DetailPageURL}>
+                <Link
+                  to={`/book/${item.ASIN}`}
+                  title={item.ItemAttributes.Title}
+                >
                   {item.LargeImage ? (
                     <img src={item.LargeImage.URL} alt="Book cover" />
                   ) : (
                     <img src={book256} alt="No book cover!" />
                   )}
-                </a>
+                </Link>
               </div>
               <div className="column">
                 <h2 className="title">
@@ -218,7 +222,7 @@ class SearchResult extends Component {
                 </h2>
                 <h3 className="subtitle">
                   By <b>{item.ItemAttributes.Author}</b>,{' '}
-                  {item.ItemAttributes.NumberOfPages} pages, published{' '}
+                  {item.ItemAttributes.NumberOfPages || '??'} pages, published{' '}
                   {item.ItemAttributes.PublicationDate}
                 </h3>
                 {inPaperback ? (
@@ -230,7 +234,7 @@ class SearchResult extends Component {
                 ) : (
                   <GetNotified
                     item={item}
-                    currentUser={currentUser}
+                    currentUser={this.props.currentUser}
                     addItem={this.props.addItem}
                   />
                 )}
@@ -267,122 +271,4 @@ const SearchResultError = ({ error }) => {
       </div>
     </article>
   )
-}
-
-class GetNotified extends Component {
-  constructor(props) {
-    super(props)
-
-    this.state = {
-      email: '',
-      picked: false,
-      done: false,
-      loading: false,
-      errorCode: null,
-      errorMessage: null
-    }
-  }
-
-  submit = event => {
-    event.preventDefault()
-    const currentUser = this.props.currentUser
-    if (!currentUser) {
-      const email = this.refs.email.value.trim()
-      if (!email) {
-        return
-      }
-      this.setState({ loading: true })
-      this.props.addItem(this.props.item, email).then(() => {
-        console.log('ADD ITEM THEN')
-        this.setState({ done: true, loading: false, picked: true })
-      })
-    } else {
-      this.setState({ loading: true })
-      this.props.addItem(this.props.item).then(() => {
-        console.log('ADD ITEM THEN')
-        this.setState({ done: true, loading: false, picked: true })
-      })
-    }
-  }
-
-  pick = event => {
-    if (this.props.currentUser) {
-      this.submit(event)
-    } else {
-      event.preventDefault()
-      this.setState({ picked: true })
-    }
-  }
-
-  cancel = event => {
-    event.preventDefault()
-    this.setState({ picked: false })
-  }
-
-  render() {
-    if (!this.state.picked) {
-      return (
-        <button type="button" className="button is-primary" onClick={this.pick}>
-          Notify me when available in Paperback
-        </button>
-      )
-    } else if (this.state.done) {
-      return (
-        <div className="notification is-success">
-          <h3 className="title is-3">Cool! Will let you know.</h3>
-        </div>
-      )
-    } else {
-      const email = localStorage.getItem('email') || ''
-      return (
-        <form onSubmit={this.submit}>
-          <p>
-            Put in <b>your email address</b> and I'll email you{' '}
-            <b>when this book is available in Paperback</b>.
-          </p>
-          <div className="field has-addons">
-            <div className="control">
-              <input
-                className="input is-medium"
-                ref="email"
-                type="email"
-                placeholder="you@example.com"
-                defaultValue={email}
-              />
-            </div>
-            <div className="control">
-              <button
-                type="submit"
-                className={
-                  this.state.loading
-                    ? 'button is-info is-medium is-loading'
-                    : 'button is-info is-medium'
-                }
-              >
-                Submit
-              </button>
-            </div>
-          </div>
-          <button type="button" className="button" onClick={this.cancel}>
-            Cancel
-          </button>
-
-          {this.state.errorMessage && (
-            <article className="message is-danger">
-              <div className="message-body">
-                <p>
-                  <b>Unable to register your email due to an error.</b>
-                </p>
-                <p>
-                  <b>Message:</b> <code>{this.state.errorMessage}</code>
-                  <br />
-                  <b>Code:</b> <code>{this.state.errorCode}</code>
-                </p>
-              </div>
-            </article>
-          )}
-        </form>
-      )
-    }
-  }
 }

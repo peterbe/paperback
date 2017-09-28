@@ -1,9 +1,16 @@
 import React from 'react'
-import { BrowserRouter as Router, Route } from 'react-router-dom'
+import {
+  BrowserRouter as Router,
+  Route,
+  Switch,
+  Redirect,
+  Link
+} from 'react-router-dom'
 import * as firebase from 'firebase/app'
 import 'firebase/auth'
 import 'firebase/database'
 import Home from './Home'
+import Book from './Book'
 
 import './App.css'
 
@@ -16,7 +23,7 @@ class App extends React.Component {
     this.state = {
       currentUser: null,
       yourBooks: [],
-      remoteError: null,
+      remoteError: null
     }
 
     // This is a cache so we can determine whether to add the book
@@ -124,7 +131,7 @@ class App extends React.Component {
           this._picked = item
 
           if (this.state.remoteError) {
-            this.setState({remoteError: null})
+            this.setState({ remoteError: null })
           }
         })
         .catch(error => {
@@ -137,7 +144,7 @@ class App extends React.Component {
             remoteError: {
               title: 'Unable create user by email',
               code: errorCode,
-              message: errorMessage,
+              message: errorMessage
             }
           })
         })
@@ -171,7 +178,7 @@ class App extends React.Component {
             })
             .then(() => {
               if (this.state.remoteError) {
-                this.setState({remoteError: null})
+                this.setState({ remoteError: null })
               }
               return this._fetchYourBooks()
             })
@@ -184,7 +191,7 @@ class App extends React.Component {
                 remoteError: {
                   title: 'Unable to save user and book combination',
                   code: errorCode,
-                  message: errorMessage,
+                  message: errorMessage
                 }
               })
             })
@@ -198,7 +205,7 @@ class App extends React.Component {
             remoteError: {
               title: 'Unable to save book',
               code: errorCode,
-              message: errorMessage,
+              message: errorMessage
             }
           })
         })
@@ -224,19 +231,38 @@ class App extends React.Component {
               <RemoteMessage error={this.state.remoteError} />
             )}
 
-            <Route
-              exact
-              path="/"
-              render={props => {
-                return (
-                  <Home
-                    {...props}
-                    currentUser={this.state.currentUser}
-                    addItem={this.addItem}
-                  />
-                )
-              }}
-            />
+            <Switch>
+              <Route
+                exact
+                path="/"
+                render={props => {
+                  return (
+                    <Home
+                      {...props}
+                      currentUser={this.state.currentUser}
+                      addItem={this.addItem}
+                    />
+                  )
+                }}
+              />
+
+              <Route
+                exact
+                path="/book/:asin"
+                render={props => {
+                  return (
+                    <Book
+                      {...props}
+                      currentUser={this.state.currentUser}
+                      addItem={this.addItem}
+                    />
+                  )
+                }}
+              />
+              <Redirect exact from="/book" to="/" />
+
+              <Route component={PageNotFound}/>
+            </Switch>
 
             <YourBooks
               removeItem={this.removeItem}
@@ -378,4 +404,20 @@ const Confirmation = ({ onCancel, onConfirm }) => {
       </button>
     </div>
   )
+}
+
+
+class PageNotFound extends React.PureComponent {
+  render() {
+    return (
+      <div className="container">
+        <div className="notification is-danger">
+          <h3 className="title is-2">Page Not Found</h3>
+          <p>
+            <Link to="/" className="button"><b>Go Back Home</b></Link>
+          </p>
+        </div>
+      </div>
+    )
+  }
 }

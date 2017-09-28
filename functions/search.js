@@ -1,7 +1,5 @@
 const search = (client, params, callback) => {
   const callParams = {
-    // SearchIndex: 'Books',
-    // Keywords: keywords,
     ResponseGroup: 'ItemAttributes,Images,AlternateVersions'
   }
   let op = 'ItemSearch'
