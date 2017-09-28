@@ -16,8 +16,7 @@ class App extends React.Component {
     this.state = {
       currentUser: null,
       yourBooks: [],
-      errorMessage: null,
-      errorCode: null
+      remoteError: null,
     }
 
     // This is a cache so we can determine whether to add the book
@@ -123,6 +122,10 @@ class App extends React.Component {
           // trigger onAuthStateChanged and that's when it's the right
           // time to add it to the user-books ref.
           this._picked = item
+
+          if (this.state.remoteError) {
+            this.setState({remoteError: null})
+          }
         })
         .catch(error => {
           // Handle Errors here.
@@ -131,8 +134,11 @@ class App extends React.Component {
           console.log('errorCode:', errorCode)
           console.log('errorMessage:', errorMessage)
           this.setState({
-            errorCode: errorCode,
-            errorMessage: errorMessage
+            remoteError: {
+              title: 'Unable create user by email',
+              code: errorCode,
+              message: errorMessage,
+            }
           })
         })
     } else {
@@ -164,6 +170,9 @@ class App extends React.Component {
               startedAt: firebase.database.ServerValue.TIMESTAMP
             })
             .then(() => {
+              if (this.state.remoteError) {
+                this.setState({remoteError: null})
+              }
               return this._fetchYourBooks()
             })
             .catch(error => {
@@ -172,8 +181,11 @@ class App extends React.Component {
               console.error('errorCode:', errorCode)
               console.error('errorMessage:', errorMessage)
               this.setState({
-                errorCode: errorCode,
-                errorMessage: errorMessage
+                remoteError: {
+                  title: 'Unable to save user and book combination',
+                  code: errorCode,
+                  message: errorMessage,
+                }
               })
             })
         })
@@ -183,8 +195,11 @@ class App extends React.Component {
           console.error('errorCode:', errorCode)
           console.error('errorMessage:', errorMessage)
           this.setState({
-            errorCode: errorCode,
-            errorMessage: errorMessage
+            remoteError: {
+              title: 'Unable to save book',
+              code: errorCode,
+              message: errorMessage,
+            }
           })
         })
     }
@@ -205,19 +220,8 @@ class App extends React.Component {
       <Router>
         <div>
           <section className="section">
-            {this.state.errorMessage && (
-              <article className="message is-danger">
-                <div className="message-body">
-                  <p>
-                    <b>Unable to register your email due to an error.</b>
-                  </p>
-                  <p>
-                    <b>Message:</b> <code>{this.state.errorMessage}</code>
-                    <br />
-                    <b>Code:</b> <code>{this.state.errorCode}</code>
-                  </p>
-                </div>
-              </article>
+            {this.state.remoteError && (
+              <RemoteMessage error={this.state.remoteError} />
             )}
 
             <Route
@@ -246,6 +250,25 @@ class App extends React.Component {
 }
 
 export default App
+
+const RemoteMessage = ({ error }) => {
+  return (
+    <div className="container">
+      <article className="message is-danger">
+        <div className="message-body">
+          <p>
+            <b>{error.title}</b>
+          </p>
+          <p>
+            <b>Message:</b> <code>{error.message}</code>
+            <br />
+            <b>Code:</b> <code>{error.code}</code>
+          </p>
+        </div>
+      </article>
+    </div>
+  )
+}
 
 class YourBooks extends React.PureComponent {
   render() {

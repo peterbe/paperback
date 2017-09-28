@@ -1,4 +1,10 @@
 import React, { Component } from 'react'
+import { throttle } from 'throttle-debounce'
+import { thousandFormat } from './Utils'
+import book256 from './book-256.png'
+import './Home.css'
+
+import { IGNORE_BINDINGS } from './Constants'
 
 class Home extends Component {
   constructor(props) {
@@ -45,12 +51,18 @@ class Search extends Component {
       loading: false,
       fetchError: null
     }
+
+    this.searchThrottled = throttle(1200, this.search)
   }
 
   submit = event => {
     event.preventDefault()
     const q = this.refs.search.value.trim()
-    console.log('Search for', q)
+    this.search(q)
+  }
+
+  search = q => {
+    console.log('Searching', q)
     const serverPrefix = process.env.REACT_APP_SERVER_PREFIX
     let url = serverPrefix + '/search'
     const asin = extractASINFromSearch(q)
@@ -59,9 +71,7 @@ class Search extends Component {
     } else {
       url += `?keywords=${encodeURIComponent(q)}`
     }
-    console.log('Search URL:', url);
-
-    this.setState({ loading: true })
+    this.setState({ loading: true, search: q })
     fetch(url).then(r => {
       this.setState({ loading: false })
       if (r.status === 200) {
@@ -83,8 +93,9 @@ class Search extends Component {
   }
 
   onChangeSearch = event => {
-    // const q = this.refs.search.value.trim()
-    // console.log('Q', q)
+    // autocomplete?
+    const q = this.refs.search.value.trim()
+    this.searchThrottled(q)
   }
 
   render() {
@@ -117,7 +128,9 @@ class Search extends Component {
             </div>
           </div>
           {this.state.loading && (
-            <p className="help">Searching Amazon.com...</p>
+            <p className="help">
+              Searching Amazon.com for <b>{this.state.search}</b>...
+            </p>
           )}
         </form>
 
@@ -154,9 +167,12 @@ class SearchResult extends Component {
         result.Items.TotalResults = 0
       }
     }
+
     return (
       <div>
-        <h4 className="title is-4">{result.Items.TotalResults} books found</h4>
+        <h5 className="title is-5">
+          {thousandFormat(result.Items.TotalResults)} books found
+        </h5>
         {result.Items.Item.map(item => {
           let allBindings = []
           if (item.AlternateVersions) {
@@ -171,13 +187,24 @@ class SearchResult extends Component {
           } else {
             allBindings.push(item.ItemAttributes.Binding)
           }
-
+          // Filter out junk/uninteresting binding formats
+          allBindings = allBindings.filter(b => {
+            return b && !IGNORE_BINDINGS.includes(b)
+          })
           const inPaperback = allBindings.includes('Paperback')
+          const otherBindings = allBindings.filter(
+            binding => binding !== 'Paperback'
+          )
+          console.log(item.ItemAttributes.Title, otherBindings)
           return (
             <div className="columns" key={item.ASIN}>
               <div className="column is-one-quarter" style={{ maxWidth: 300 }}>
                 <a title={item.ItemAttributes.Title} href={item.DetailPageURL}>
-                  <img src={item.LargeImage.URL} alt="Book cover" />
+                  {item.LargeImage ? (
+                    <img src={item.LargeImage.URL} alt="Book cover" />
+                  ) : (
+                    <img src={book256} alt="No book cover!" />
+                  )}
                 </a>
               </div>
               <div className="column">
@@ -197,7 +224,7 @@ class SearchResult extends Component {
                 {inPaperback ? (
                   <p>
                     <a href={item.DetailPageURL}>
-                      Already available in Paperback!
+                      <b>Already available in Paperback!</b>
                     </a>
                   </p>
                 ) : (
@@ -207,6 +234,15 @@ class SearchResult extends Component {
                     addItem={this.props.addItem}
                   />
                 )}
+                <p className="other-bindings">
+                  Also available in{' '}
+                  {otherBindings.map((binding, i) => (
+                    <span className="tag is-small">{binding}</span>
+                  ))}
+                </p>
+                <p>
+                  <a href={item.DetailPageURL}>On Amazon.com</a>
+                </p>
               </div>
             </div>
           )
@@ -286,19 +322,18 @@ class GetNotified extends Component {
   render() {
     if (!this.state.picked) {
       return (
-        <button
-          type="button"
-          className="button is-primary is-large"
-          onClick={this.pick}
-        >
-          Get notified when available in Paperback
+        <button type="button" className="button is-primary" onClick={this.pick}>
+          Notify me when available in Paperback
         </button>
       )
     } else if (this.state.done) {
-      return <h3 className="title is-3">Cool! Will let you know.</h3>
+      return (
+        <div className="notification is-success">
+          <h3 className="title is-3">Cool! Will let you know.</h3>
+        </div>
+      )
     } else {
       const email = localStorage.getItem('email') || ''
-      // const email = this.props.currentUser ? this.props.currentUser.email : oldEmail
       return (
         <form onSubmit={this.submit}>
           <p>
