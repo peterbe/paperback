@@ -5,6 +5,8 @@ import queryString from 'query-string'
 import { thousandFormat, getAllBindings } from './Utils'
 import book256 from './book-256.png'
 import GetNotified from './GetNotified'
+import YourBooks from './YourBooks'
+
 import './Home.css'
 
 class Home extends Component {
@@ -51,6 +53,10 @@ class Home extends Component {
         currentUser={this.props.currentUser}
         addItem={this.props.addItem}
         searchSubmitted={this.searchSubmitted}
+      />
+      <YourBooks
+        removeItem={this.props.removeItem}
+        books={this.props.yourBooks}
       />
     </div>
     )
@@ -149,7 +155,6 @@ class Search extends React.PureComponent {
   }
 
   render() {
-    console.log('Search.render');
     return (
       <div className="container">
         <form onSubmit={this.submit}>

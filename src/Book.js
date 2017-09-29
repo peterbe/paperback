@@ -4,19 +4,28 @@ import { getAllBindings } from './Utils'
 import GetNotified from './GetNotified'
 import book256 from './book-256.png'
 
-class Book extends React.PureComponent {
+class Book extends React.Component {
   constructor(props) {
     super(props)
 
     this.state = {
       loading: true,
       fetchError: null,
-      notFound: false
+      notFound: false,
+      item: null
     }
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.load(this.props.match.params.asin)
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (!this.state.item) {
+      this.load(nextProps.match.params.asin)
+    } else if (this.state.item.ASIN !== nextProps.match.params.asin) {
+      this.load(nextProps.match.params.asin)
+    }
   }
 
   load = asin => {
@@ -66,7 +75,9 @@ class Book extends React.PureComponent {
             <h3 className="title is-2">Book Not Found</h3>
             <p>Can't find that book on Amazon.com</p>
             <p>
-              <Link to="/" className="button"><b>Go Back Home</b></Link>
+              <Link to="/" className="button">
+                <b>Go Back Home</b>
+              </Link>
             </p>
           </div>
         </div>
@@ -76,9 +87,7 @@ class Book extends React.PureComponent {
 
     const allBindings = getAllBindings(item)
     const inPaperback = allBindings.includes('Paperback')
-    const otherBindings = allBindings.filter(
-      binding => binding !== 'Paperback'
-    )
+    const otherBindings = allBindings.filter(binding => binding !== 'Paperback')
     return (
       <div className="container">
         <div className="columns">
@@ -123,7 +132,9 @@ class Book extends React.PureComponent {
             <p className="other-bindings">
               Also available in{' '}
               {otherBindings.map((binding, i) => (
-                <span key={binding} className="tag is-small">{binding}</span>
+                <span key={binding} className="tag is-small">
+                  {binding}
+                </span>
               ))}
             </p>
             <p>

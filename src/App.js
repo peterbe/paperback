@@ -97,26 +97,11 @@ class App extends React.Component {
             delete book.Raw
             // yourBooks.push(book)
             this.setState((state, props) => {
-              console.log('Your book:', book);
               return { yourBooks: [...state.yourBooks, book] }
             })
           })
       })
     })
-    // return ref.on('child_added', snapshot => {
-    //   console.log(snapshot.key, snapshot.val());
-    // })
-    // ref.once('value').then(snapshot => {
-    //   // const yourBooks = this.state.yourBooks
-    //   const value = snapshot.val()
-    //   if (value) {
-    //     // Only add it if it's not already there.
-    //     // console.log('VALUE:', value)
-    //     // console.log('EXISTING:', yourBooks.map(a => a.ASIN))
-    //     yourBooks.push(value)
-    //     this.setState({ yourBooks: yourBooks })
-    //   }
-    // })
   }
 
   addItem = (item, email = '') => {
@@ -229,28 +214,52 @@ class App extends React.Component {
   sendPasswordResetEmail = email => {
     const actionCodeSettings = {}
     const auth = firebase.auth()
-    return auth.sendPasswordResetEmail(email, actionCodeSettings)
-    .then(() => {
-      // Password reset email sent.
-    })
-    .catch(function(error) {
-      const errorCode = error.code
-      const errorMessage = error.message
-      console.error('errorCode:', errorCode)
-      console.error('errorMessage:', errorMessage)
-      this.setState({
-        remoteError: {
-          title: 'Unable to save book',
-          code: errorCode,
-          message: errorMessage
-        }
+    return auth
+      .sendPasswordResetEmail(email, actionCodeSettings)
+      .then(() => {
+        // Password reset email sent.
       })
-      return error
-    });
+      .catch(error => {
+        const errorCode = error.code
+        const errorMessage = error.message
+        console.error('errorCode:', errorCode)
+        console.error('errorMessage:', errorMessage)
+        this.setState({
+          remoteError: {
+            title: 'Unable to save book',
+            code: errorCode,
+            message: errorMessage
+          }
+        })
+        return error
+      })
+  }
+
+  signIn = (email, password) => {
+    const auth = firebase.auth()
+    return auth
+      .signInWithEmailAndPassword(email, password)
+      .then(() => {
+        // Should be signed in now
+      })
+      .catch(error => {
+        const errorCode = error.code
+        const errorMessage = error.message
+        console.error('errorCode:', errorCode)
+        console.error('errorMessage:', errorMessage)
+        this.setState({
+          remoteError: {
+            title: 'Unable to save book',
+            code: errorCode,
+            message: errorMessage
+          }
+        })
+        return error
+      })
   }
 
   removeRemoteError = () => {
-    this.setState({remoteError: null})
+    this.setState({ remoteError: null })
   }
 
   render() {
@@ -269,6 +278,30 @@ class App extends React.Component {
                 <span />
               </button>
             </div>
+            <div className="navbar-menu">
+              <div className="navbar-end">
+                {this.state.yourBooks.length && (
+                  <div className="navbar-item has-dropdown is-hoverable">
+                    <Link to="/" className="navbar-link">
+                      Your Books ({this.state.yourBooks.length})
+                    </Link>
+                    <div className="navbar-dropdown is-right">
+                      {this.state.yourBooks.map(book => {
+                        return (
+                          <Link
+                            to={`/book/${book.ASIN}`}
+                            key={book.ASIN}
+                            className="navbar-item"
+                          >
+                            {book.Title}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </nav>
 
           <section className="section">
@@ -276,7 +309,7 @@ class App extends React.Component {
               <RemoteError
                 error={this.state.remoteError}
                 removeError={this.removeRemoteError}
-               />
+              />
             )}
 
             <Switch>
@@ -290,6 +323,7 @@ class App extends React.Component {
                       yourBooks={this.state.yourBooks}
                       currentUser={this.state.currentUser}
                       addItem={this.addItem}
+                      removeItem={this.removeItem}
                     />
                   )
                 }}
@@ -316,6 +350,7 @@ class App extends React.Component {
                   return (
                     <SignIn
                       {...props}
+                      signIn={this.signIn}
                       sendPasswordResetEmail={this.sendPasswordResetEmail}
                       currentUser={this.state.currentUser}
                     />
@@ -326,11 +361,6 @@ class App extends React.Component {
 
               <Route component={PageNotFound} />
             </Switch>
-
-            <YourBooks
-              removeItem={this.removeItem}
-              books={this.state.yourBooks}
-            />
           </section>
         </div>
       </Router>
@@ -339,7 +369,6 @@ class App extends React.Component {
 }
 
 export default App
-
 
 // Happens when Firebase yells at us
 class RemoteError extends React.PureComponent {
@@ -360,7 +389,7 @@ class RemoteError extends React.PureComponent {
     const { error } = this.props
     return (
       <div className="modal is-active">
-        <div className="modal-background"></div>
+        <div className="modal-background" />
         <div className="modal-content">
           <article className="message is-danger">
             <div className="message-body">
@@ -376,121 +405,14 @@ class RemoteError extends React.PureComponent {
             </div>
           </article>
         </div>
-        <button className="modal-close is-large" aria-label="close"
-          onClick={this.close}></button>
+        <button
+          className="modal-close is-large"
+          aria-label="close"
+          onClick={this.close}
+        />
       </div>
     )
   }
-}
-
-class YourBooks extends React.PureComponent {
-  render() {
-    const { books } = this.props
-    if (!books.length) {
-      return null
-    }
-    return (
-      <div className="your-books container">
-        <h3 className="title">
-          You're watching {books.length} book{books.length === 1 ? '' : 's'}
-        </h3>
-        {books.map(book => (
-          <YourBook
-            removeItem={this.props.removeItem}
-            key={book.ASIN}
-            book={book}
-          />
-        ))}
-      </div>
-    )
-  }
-}
-
-class YourBook extends React.PureComponent {
-  constructor(props) {
-    super(props)
-
-    this.state = {
-      confirm: false
-    }
-  }
-
-  deleteItem = event => {
-    event.preventDefault()
-    this.props.removeItem(this.props.book)
-  }
-
-  deleteItemConfirm = event => {
-    event.preventDefault()
-    this.setState({ confirm: true })
-  }
-
-  cancelConfirmation = event => {
-    event.preventDefault()
-    this.setState({ confirm: false })
-  }
-
-  render() {
-    const { book } = this.props
-    const item = book.item
-    return (
-      <article className="media">
-        <figure className="media-left">
-          <p className="image is-128x128">
-            <img src={item.MediumImage.URL} alt="Book cover" />
-          </p>
-        </figure>
-        <div className="media-content">
-          <div className="content">
-            <h3 className="title">
-              <strong>{book.Title}</strong>{' '}
-              <span className="tag is-medium">
-                {item.ItemAttributes.ListPrice
-                  ? item.ItemAttributes.ListPrice.FormattedPrice
-                  : 'no price yet'}
-              </span>
-            </h3>
-            <h5 className="subtitle">
-              By <b>{item.ItemAttributes.Author}</b>,{' '}
-              {item.ItemAttributes.NumberOfPages} pages, published{' '}
-              {item.ItemAttributes.PublicationDate}
-            </h5>
-          </div>
-        </div>
-        <div className="media-right">
-          {this.state.confirm ? (
-            <Confirmation
-              onCancel={this.cancelConfirmation}
-              onConfirm={this.deleteItem}
-            />
-          ) : (
-            <button className="delete" onClick={this.deleteItemConfirm} />
-          )}
-        </div>
-      </article>
-    )
-  }
-}
-
-const Confirmation = ({ onCancel, onConfirm }) => {
-  return (
-    <div>
-      <button
-        type="button"
-        className="button is-small is-primary"
-        onClick={onConfirm}
-      >
-        Yes
-      </button>
-      <button
-        type="button"
-        className="button is-small is-light"
-        onClick={onCancel}
-      >
-        Cancel
-      </button>
-    </div>
-  )
 }
 
 class PageNotFound extends React.PureComponent {

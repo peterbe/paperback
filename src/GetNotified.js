@@ -65,6 +65,13 @@ class GetNotified extends React.PureComponent {
     this.setState({ mustSignIn: false })
   }
 
+  alreadyInYourBooks = () => {
+    // console.log('COMPARE', this.props.item, this.props.yourBooks);
+    return this.props.yourBooks.filter(book => {
+      return this.props.item.ASIN === book.ASIN
+    }).length
+  }
+
   render() {
     if (this.state.mustSignIn) {
       return <div className="notification is-warning">
@@ -80,15 +87,17 @@ class GetNotified extends React.PureComponent {
         </p>
       </div>
     }
-    console.log(this.props.yourBooks)
 
-    if (!this.state.picked) {
+    if (this.alreadyInYourBooks()) {
       return (
-        <button type="button" className="button is-primary" onClick={this.pick}>
-          Notify me when available in Paperback
-        </button>
+        <div className="notification is-success">
+          <p>
+            <b>You're already watching this book.</b>
+          </p>
+        </div>
       )
-    } else if (this.state.done) {
+    }
+    if (this.state.done) {
       return (
         <div className="notification is-success">
           <h3 className="title is-3">Cool! Will let you know.</h3>
@@ -102,6 +111,13 @@ class GetNotified extends React.PureComponent {
             </Link>
           </h5>
         </div>
+      )
+    }
+    if (!this.state.picked) {
+      return (
+        <button type="button" className="button is-primary" onClick={this.pick}>
+          Notify me when available in Paperback
+        </button>
       )
     } else {
       const email = localStorage.getItem('email') || ''
