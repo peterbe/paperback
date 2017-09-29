@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import { Link } from 'react-router-dom'
 import { throttle } from 'throttle-debounce'
+import queryString from 'query-string'
 import { thousandFormat, getAllBindings } from './Utils'
 import book256 from './book-256.png'
 import GetNotified from './GetNotified'
@@ -10,31 +11,46 @@ class Home extends Component {
   constructor(props) {
     super(props)
 
-    this.state = {}
+    let initialSearch = ''
+    if (this.props.location.search) {
+      const qs = queryString.parse(this.props.location.search)
+      if (qs.q) {
+        initialSearch = qs.q
+      }
+    }
+    this.state = {
+      initialSearch: initialSearch
+    }
   }
 
   componentWillMount() {
     document.title = 'Paperback Watch'
   }
 
+  searchSubmitted = (q) => {
+    this.props.history.push({search: `?q=${encodeURIComponent(q)}`})
+  }
+
   render() {
     return (
       <div>
-      <section className="hero">
+      <section className="hero is-bold">
         <div className="hero-body">
           <div className="container">
             <h1 className="title">
               Paperback Watch
             </h1>
             <h2 className="subtitle">
-              Get Notified When A Book You Want Becomes Available in <b>Paperback</b> on <b>Amazon.com</b>
+              Get Notified When A Book Becomes Available in <b>Paperback</b> on <b>Amazon.com</b>
             </h2>
           </div>
         </div>
       </section>
       <Search
+        initialSearch={this.state.initialSearch}
         currentUser={this.props.currentUser}
         addItem={this.props.addItem}
+        searchSubmitted={this.searchSubmitted}
       />
     </div>
     )
@@ -56,12 +72,12 @@ const extractASINFromSearch = s => {
   return null
 }
 
-class Search extends Component {
+class Search extends React.PureComponent {
   constructor(props) {
     super(props)
 
     this.state = {
-      search: '',
+      search: this.props.initialSearch,
       loading: false,
       fetchError: null,
       searchResult: null,
@@ -70,10 +86,24 @@ class Search extends Component {
     this.searchThrottled = throttle(1600, this.search)
   }
 
+  componentWillReceiveProps(props) {
+    if (this.state.searchResult) {
+      this.setState({searchResult: null, fetchError: null})
+    }
+  }
+  componentDidMount() {
+    if (this.props.initialSearch) {
+      this.search(this.props.initialSearch)
+    }
+  }
+
   submit = event => {
     event.preventDefault()
     const q = this.refs.search.value.trim()
-    this.search(q)
+    if (q) {
+      this.search(q)
+      this.props.searchSubmitted(q)
+    }
   }
 
   search = q => {
@@ -91,7 +121,7 @@ class Search extends Component {
       this.setState({ loading: false })
       if (r.status === 200) {
         r.json().then(response => {
-          console.log('RESPONSE', response)
+          // console.log('RESPONSE', response)
           this.setState({ searchResult: response })
         })
       } else {
@@ -119,6 +149,7 @@ class Search extends Component {
   }
 
   render() {
+    console.log('Search.render');
     return (
       <div className="container">
         <form onSubmit={this.submit}>
@@ -188,12 +219,15 @@ class SearchResult extends Component {
       }
     }
 
+    // const listedASINs = []
     return (
       <div>
         <h5 className="title is-5">
           {thousandFormat(result.Items.TotalResults)} books found
         </h5>
         {result.Items.Item.map(item => {
+          // console.log(listedASINs);
+          // listedASINs.push(item.ASIN)
           // let allBindings = []
           // if (item.AlternateVersions) {
           //   allBindings = item.AlternateVersions.AlternateVersion
@@ -216,7 +250,6 @@ class SearchResult extends Component {
           const otherBindings = allBindings.filter(
             binding => binding !== 'Paperback'
           )
-          console.log(item.ItemAttributes.Title, otherBindings)
           return (
             <div className="columns" key={item.ASIN}>
               <div className="column is-one-quarter" style={{ maxWidth: 300 }}>
@@ -261,7 +294,7 @@ class SearchResult extends Component {
                 <p className="other-bindings">
                   Also available in{' '}
                   {otherBindings.map((binding, i) => (
-                    <span className="tag is-small">{binding}</span>
+                    <span key={binding} className="tag is-small">{binding}</span>
                   ))}
                 </p>
                 <p>

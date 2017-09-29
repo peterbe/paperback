@@ -11,6 +11,7 @@ import 'firebase/auth'
 import 'firebase/database'
 import Home from './Home'
 import Book from './Book'
+import SignIn from './SignIn'
 
 import './App.css'
 
@@ -96,6 +97,7 @@ class App extends React.Component {
             delete book.Raw
             // yourBooks.push(book)
             this.setState((state, props) => {
+              console.log('Your book:', book);
               return { yourBooks: [...state.yourBooks, book] }
             })
           })
@@ -119,6 +121,10 @@ class App extends React.Component {
 
   addItem = (item, email = '') => {
     if (!this.state.currentUser) {
+      if (!email) {
+        throw new Error('Email missing')
+      }
+      localStorage.setItem('email', email)
       const auth = firebase.auth()
       const password = randomString()
       return auth
@@ -135,6 +141,10 @@ class App extends React.Component {
           }
         })
         .catch(error => {
+          if (error.code === 'auth/email-already-in-use') {
+            // This gets handled
+            return error
+          }
           // Handle Errors here.
           const errorCode = error.code
           const errorMessage = error.message
@@ -147,19 +157,13 @@ class App extends React.Component {
               message: errorMessage
             }
           })
+          return error
         })
     } else {
-      // const ref = this.database.ref('/books')
-      // // We need to decide whether to first add the book first.
-      // let newPostKey
-      // if (this._allKnownBooks[item.ASIN]) {
-      //   newPostKey = this._allKnownBooks[item.ASIN]
-      // } else {
-      //
-      // }
-      // const newPostKey = ref.push().key
+      // We need to decide whether to first add the book first.
       const newPostKey =
         this._allKnownBooks[item.ASIN] || this.database.ref('/books').push().key
+
       return this.database
         .ref(`/books/${newPostKey}`)
         .set({
@@ -222,6 +226,33 @@ class App extends React.Component {
       })
   }
 
+  sendPasswordResetEmail = email => {
+    const actionCodeSettings = {}
+    const auth = firebase.auth()
+    return auth.sendPasswordResetEmail(email, actionCodeSettings)
+    .then(() => {
+      // Password reset email sent.
+    })
+    .catch(function(error) {
+      const errorCode = error.code
+      const errorMessage = error.message
+      console.error('errorCode:', errorCode)
+      console.error('errorMessage:', errorMessage)
+      this.setState({
+        remoteError: {
+          title: 'Unable to save book',
+          code: errorCode,
+          message: errorMessage
+        }
+      })
+      return error
+    });
+  }
+
+  removeRemoteError = () => {
+    this.setState({remoteError: null})
+  }
+
   render() {
     return (
       <Router>
@@ -233,16 +264,19 @@ class App extends React.Component {
               </Link>
 
               <button className="button navbar-burger">
-                <span></span>
-                <span></span>
-                <span></span>
+                <span />
+                <span />
+                <span />
               </button>
             </div>
           </nav>
 
           <section className="section">
             {this.state.remoteError && (
-              <RemoteMessage error={this.state.remoteError} />
+              <RemoteError
+                error={this.state.remoteError}
+                removeError={this.removeRemoteError}
+               />
             )}
 
             <Switch>
@@ -253,6 +287,7 @@ class App extends React.Component {
                   return (
                     <Home
                       {...props}
+                      yourBooks={this.state.yourBooks}
                       currentUser={this.state.currentUser}
                       addItem={this.addItem}
                     />
@@ -267,15 +302,29 @@ class App extends React.Component {
                   return (
                     <Book
                       {...props}
+                      yourBooks={this.state.yourBooks}
                       currentUser={this.state.currentUser}
                       addItem={this.addItem}
                     />
                   )
                 }}
               />
+
+              <Route
+                path="/signin"
+                render={props => {
+                  return (
+                    <SignIn
+                      {...props}
+                      sendPasswordResetEmail={this.sendPasswordResetEmail}
+                      currentUser={this.state.currentUser}
+                    />
+                  )
+                }}
+              />
               <Redirect exact from="/book" to="/" />
 
-              <Route component={PageNotFound}/>
+              <Route component={PageNotFound} />
             </Switch>
 
             <YourBooks
@@ -291,23 +340,47 @@ class App extends React.Component {
 
 export default App
 
-const RemoteMessage = ({ error }) => {
-  return (
-    <div className="container">
-      <article className="message is-danger">
-        <div className="message-body">
-          <p>
-            <b>{error.title}</b>
-          </p>
-          <p>
-            <b>Message:</b> <code>{error.message}</code>
-            <br />
-            <b>Code:</b> <code>{error.code}</code>
-          </p>
+
+// Happens when Firebase yells at us
+class RemoteError extends React.PureComponent {
+  // constructor(props) {
+  //   super(props)
+  //
+  //   this.state = {
+  //     closed: false
+  //   }
+  // }
+
+  close = event => {
+    event.preventDefault()
+    this.props.removeError()
+  }
+
+  render() {
+    const { error } = this.props
+    return (
+      <div className="modal is-active">
+        <div className="modal-background"></div>
+        <div className="modal-content">
+          <article className="message is-danger">
+            <div className="message-body">
+              <h4 className="title is-4">A Server Error Happened</h4>
+              <p>
+                <b>{error.title}</b>
+              </p>
+              <p>
+                <b>Message:</b> <code>{error.message}</code>
+                <br />
+                <b>Code:</b> <code>{error.code}</code>
+              </p>
+            </div>
+          </article>
         </div>
-      </article>
-    </div>
-  )
+        <button className="modal-close is-large" aria-label="close"
+          onClick={this.close}></button>
+      </div>
+    )
+  }
 }
 
 class YourBooks extends React.PureComponent {
@@ -420,7 +493,6 @@ const Confirmation = ({ onCancel, onConfirm }) => {
   )
 }
 
-
 class PageNotFound extends React.PureComponent {
   render() {
     return (
@@ -428,7 +500,9 @@ class PageNotFound extends React.PureComponent {
         <div className="notification is-danger">
           <h3 className="title is-2">Page Not Found</h3>
           <p>
-            <Link to="/" className="button"><b>Go Back Home</b></Link>
+            <Link to="/" className="button">
+              <b>Go Back Home</b>
+            </Link>
           </p>
         </div>
       </div>

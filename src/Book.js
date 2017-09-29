@@ -28,7 +28,7 @@ class Book extends React.PureComponent {
     fetch(url).then(r => {
       if (r.status === 200) {
         r.json().then(response => {
-          console.log('RESPONSE', response)
+          // console.log('RESPONSE', response)
           if (response.Items.Item) {
             const item = response.Items.Item
             document.title = item.ItemAttributes.Title
@@ -116,6 +116,7 @@ class Book extends React.PureComponent {
               <GetNotified
                 item={item}
                 currentUser={this.props.currentUser}
+                yourBooks={this.props.yourBooks}
                 addItem={this.props.addItem}
               />
             )}

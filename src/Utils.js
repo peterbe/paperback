@@ -35,3 +35,8 @@ export const getAllBindings = (item) => {
   })
   return allBindings
 }
+
+export const absoluteUrl = path => {
+  const location = document.location
+  return `${location.protocol}//${location.host}${path}`
+}

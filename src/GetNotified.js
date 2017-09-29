@@ -1,5 +1,6 @@
 import React from 'react'
-
+import { Link } from 'react-router-dom'
+import { absoluteUrl } from './Utils'
 
 class GetNotified extends React.PureComponent {
   constructor(props) {
@@ -10,8 +11,7 @@ class GetNotified extends React.PureComponent {
       picked: false,
       done: false,
       loading: false,
-      errorCode: null,
-      errorMessage: null
+      mustSignIn: false
     }
   }
 
@@ -24,15 +24,24 @@ class GetNotified extends React.PureComponent {
         return
       }
       this.setState({ loading: true })
-      this.props.addItem(this.props.item, email).then(() => {
-        console.log('ADD ITEM THEN')
-        this.setState({ done: true, loading: false, picked: true })
+      this.props.addItem(this.props.item, email).then(error => {
+        if (error) {
+          this.setState({ done: false, loading: false, picked: false })
+          if (error.code === 'auth/email-already-in-use') {
+            this.setState({ mustSignIn: true })
+          }
+        } else {
+          this.setState({ done: true, loading: false, picked: true })
+        }
       })
     } else {
       this.setState({ loading: true })
-      this.props.addItem(this.props.item).then(() => {
-        console.log('ADD ITEM THEN')
-        this.setState({ done: true, loading: false, picked: true })
+      this.props.addItem(this.props.item).then(error => {
+        if (error) {
+          this.setState({ done: false, loading: false, picked: false })
+        } else {
+          this.setState({ done: true, loading: false, picked: true })
+        }
       })
     }
   }
@@ -51,7 +60,28 @@ class GetNotified extends React.PureComponent {
     this.setState({ picked: false })
   }
 
+  closeMustSignIn = event => {
+    event.preventDefault()
+    this.setState({ mustSignIn: false })
+  }
+
   render() {
+    if (this.state.mustSignIn) {
+      return <div className="notification is-warning">
+        <button className="delete" />
+        <p>
+          <b>You must sign in</b>
+        </p>
+        <p>
+          If you have used your email before, you first have to sign in.
+        </p>
+        <p>
+          <Link to="/signin" className="button is-medium">Sign In</Link>
+        </p>
+      </div>
+    }
+    console.log(this.props.yourBooks)
+
     if (!this.state.picked) {
       return (
         <button type="button" className="button is-primary" onClick={this.pick}>
@@ -62,6 +92,15 @@ class GetNotified extends React.PureComponent {
       return (
         <div className="notification is-success">
           <h3 className="title is-3">Cool! Will let you know.</h3>
+          <h5 className="subtitle">
+            Please be a good friend and share this with your friends.
+            <br />
+            <br />
+            <b>Share Link:</b>{' '}
+            <Link to={`/book/${this.props.item.ASIN}`}>
+              {absoluteUrl(`/book/${this.props.item.ASIN}`)}
+            </Link>
+          </h5>
         </div>
       )
     } else {
@@ -98,7 +137,6 @@ class GetNotified extends React.PureComponent {
           <button type="button" className="button" onClick={this.cancel}>
             Cancel
           </button>
-
         </form>
       )
     }
