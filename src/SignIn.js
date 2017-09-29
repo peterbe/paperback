@@ -15,6 +15,8 @@ class SignIn extends React.Component {
   componentDidMount() {
     const email = localStorage.getItem('email')
     if (email) {
+      // XXX probably want to use a localStorage to guard this from
+      // firing repeatedly and excessively.
       this.props.sendPasswordResetEmail(email).then(error => {
         if (!error) {
           this.setState({ sent: email })

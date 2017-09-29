@@ -2,12 +2,8 @@ const functions = require('firebase-functions')
 const aws = require('aws-lib')
 const search = require('./search').search
 
-// const cors = require('cors')({origin: true});
-const cors = require('cors')
-
 // https://firebase.google.com/docs/functions/write-firebase-functions
 
-// XXX Need to try to create a global client here using credentials
 const config = functions.config()
 const client = aws.createProdAdvClient(
   config.aws.access_key_id,
@@ -15,7 +11,7 @@ const client = aws.createProdAdvClient(
   config.aws.associate_tag
 )
 
-const searchFn = (req, res) => {
+exports.search = functions.https.onRequest((req, res) => {
   const keywords = req.query.keywords
   const itemid = req.query.itemid
 
@@ -37,12 +33,4 @@ const searchFn = (req, res) => {
   } else {
     return res.status(400).json({ error: "'keywords' or 'itemid' missing" })
   }
-}
-
-exports.search = functions.https.onRequest((req, res) => {
-  // console.log(config.app);
-  // console.log(config.app.cors_origin);
-  cors({origin: config.app.cors_origin})(req, res, function() {
-    searchFn(req, res)
-  })
 })

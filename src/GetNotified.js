@@ -66,8 +66,7 @@ class GetNotified extends React.PureComponent {
   }
 
   alreadyInYourBooks = () => {
-    // console.log('COMPARE', this.props.item, this.props.yourBooks);
-    return this.props.yourBooks.filter(book => {
+    return this.props.yourBooks && this.props.yourBooks.filter(book => {
       return this.props.item.ASIN === book.ASIN
     }).length
   }

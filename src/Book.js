@@ -30,8 +30,9 @@ class Book extends React.Component {
 
   load = asin => {
     console.log('Loading ASIN', asin)
-    const serverPrefix = process.env.REACT_APP_SERVER_PREFIX
-    let url = serverPrefix + '/search'
+    // const serverPrefix = process.env.REACT_APP_SERVER_PREFIX
+    // let url = serverPrefix + '/search'
+    let url = '/api/search'
     url += `?itemid=${encodeURIComponent(asin)}`
     this.setState({ loading: true })
     fetch(url).then(r => {

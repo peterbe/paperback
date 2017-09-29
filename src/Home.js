@@ -114,8 +114,8 @@ class Search extends React.PureComponent {
 
   search = q => {
     console.log('Searching', q)
-    const serverPrefix = process.env.REACT_APP_SERVER_PREFIX
-    let url = serverPrefix + '/search'
+    // const serverPrefix = process.env.REACT_APP_SERVER_PREFIX
+    let url = '/api/search'
     const asin = extractASINFromSearch(q)
     if (asin) {
       url += `?itemid=${encodeURIComponent(asin)}`
