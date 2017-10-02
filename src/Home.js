@@ -43,7 +43,7 @@ class Home extends Component {
               Paperback Watch
             </h1>
             <h2 className="subtitle">
-              Get Notified When A Book Becomes Available in <b>Paperback</b> on <b>Amazon.com</b>
+              Get Notified When A Book Becomes Available In <b>Paperback</b> On <b>Amazon.com</b>
             </h2>
           </div>
         </div>
