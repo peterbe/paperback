@@ -52,6 +52,7 @@ class Home extends Component {
           currentUser={this.props.currentUser}
           addItem={this.props.addItem}
           searchSubmitted={this.searchSubmitted}
+          yourBooks={this.props.yourBooks}
         />
         {this.props.yourBooks.length ? (
           <YourBooks
@@ -194,7 +195,8 @@ class Search extends React.PureComponent {
             </p>
           )}
           {!this.state.search &&
-            !this.state.searchResult && (
+            !this.state.searchResult &&
+            !this.props.yourBooks && (
               <ShowExampleSearches onPicked={this.onPickedExample} />
             )}
         </form>

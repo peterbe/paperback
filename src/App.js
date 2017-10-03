@@ -272,11 +272,11 @@ class App extends React.Component {
                 Paperback Watch
               </Link>
 
-              <button className="button navbar-burger">
+              {/* <button className="button navbar-burger">
                 <span />
                 <span />
                 <span />
-              </button>
+              </button> */}
             </div>
             <div className="navbar-menu">
               <div className="navbar-end">
