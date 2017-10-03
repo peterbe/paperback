@@ -29,36 +29,39 @@ class Home extends Component {
     document.title = 'Paperback Watch'
   }
 
-  searchSubmitted = (q) => {
-    this.props.history.push({search: `?q=${encodeURIComponent(q)}`})
+  searchSubmitted = q => {
+    this.props.history.push({ search: `?q=${encodeURIComponent(q)}` })
   }
 
   render() {
     return (
       <div>
-      <section className="hero is-bold">
-        <div className="hero-body">
-          <div className="container">
-            <h1 className="title">
-              Paperback Watch
-            </h1>
-            <h2 className="subtitle">
-              Get Notified When A Book Becomes Available In <b>Paperback</b> On <b>Amazon.com</b>
-            </h2>
+        <section className="hero is-bold">
+          <div className="hero-body">
+            <div className="container">
+              <h1 className="title">Paperback Watch</h1>
+              <h2 className="subtitle">
+                Get Notified When A Book Becomes Available In <b>Paperback</b>{' '}
+                On <b>Amazon.com</b>
+              </h2>
+            </div>
           </div>
-        </div>
-      </section>
-      <Search
-        initialSearch={this.state.initialSearch}
-        currentUser={this.props.currentUser}
-        addItem={this.props.addItem}
-        searchSubmitted={this.searchSubmitted}
-      />
-      <YourBooks
-        removeItem={this.props.removeItem}
-        books={this.props.yourBooks}
-      />
-    </div>
+        </section>
+        <Search
+          initialSearch={this.state.initialSearch}
+          currentUser={this.props.currentUser}
+          addItem={this.props.addItem}
+          searchSubmitted={this.searchSubmitted}
+        />
+        {this.props.yourBooks.length ? (
+          <YourBooks
+            removeItem={this.props.removeItem}
+            books={this.props.yourBooks}
+          />
+        ) : (
+          <FAQs />
+        )}
+      </div>
     )
   }
 }
@@ -86,7 +89,7 @@ class Search extends React.PureComponent {
       search: this.props.initialSearch,
       loading: false,
       fetchError: null,
-      searchResult: null,
+      searchResult: null
     }
 
     this.searchThrottled = throttle(1600, this.search)
@@ -94,7 +97,7 @@ class Search extends React.PureComponent {
 
   componentWillReceiveProps(props) {
     if (this.state.searchResult) {
-      this.setState({searchResult: null, fetchError: null})
+      this.setState({ searchResult: null, fetchError: null })
     }
   }
   componentDidMount() {
@@ -149,9 +152,14 @@ class Search extends React.PureComponent {
     if (q) {
       this.searchThrottled(q)
     } else if (this.state.searchResult) {
-      this.setState({searchResult: null})
+      this.setState({ searchResult: null })
     }
+  }
 
+  onPickedExample = q => {
+    this.refs.search.value = q
+    this.search(q)
+    this.props.searchSubmitted(q)
   }
 
   render() {
@@ -164,9 +172,6 @@ class Search extends React.PureComponent {
                 type="search"
                 ref="search"
                 className="input"
-                // value="Bernie Sanders Guide to Political Revolution"
-                // value="https://www.amazon.com/Bernie-Sanderss-Guide-Political-Revolution/dp/125xx0138906/ref=pd_rhf_ee_1?_encoding=UTF8&pd_rd_i=1250138906&pd_rd_r=27NTYDDKBS5V7E9CDR2R&pd_rd_w=Gbwfq&pd_rd_wg=nhtmd&psc=1&refRID=27NTYDDKBS5V7E9CDR2R"
-                // value="https://www.amazon.com/Bernie-Sanderss-Guide-Political-Revolution/dp/1250138906/ref=pd_rhf_ee_1?_encoding=UTF8&pd_rd_i=1250138906&pd_rd_r=27NTYDDKBS5V7E9CDR2R&pd_rd_w=Gbwfq&pd_rd_wg=nhtmd&psc=1&refRID=27NTYDDKBS5V7E9CDR2R"
                 onChange={this.onChangeSearch}
               />
             </div>
@@ -188,6 +193,10 @@ class Search extends React.PureComponent {
               Searching Amazon.com for <b>{this.state.search}</b>...
             </p>
           )}
+          {!this.state.search &&
+            !this.state.searchResult && (
+              <ShowExampleSearches onPicked={this.onPickedExample} />
+            )}
         </form>
 
         {this.state.searchResult && (
@@ -202,7 +211,48 @@ class Search extends React.PureComponent {
   }
 }
 
-class SearchResult extends Component {
+class ShowExampleSearches extends React.PureComponent {
+  load = (event, example) => {
+    event.preventDefault()
+    const q = `${example[0]} by ${example[1]}`
+    this.props.onPicked(q)
+  }
+  makeHref = q => {
+    return `/?q=${encodeURIComponent(q)}`
+  }
+  render() {
+    const examples = [
+      ['Astrophysics for People in a Hurry', 'Neil deGrasse Tyson'],
+      ['Leonardo da Vinci', 'Walter Isaacson'],
+      [
+        'Killing England: The Brutal Struggle for American Independence',
+        "Bill O'Reilly"
+      ],
+      ['Bernie Sanders Guide to Political Revolution', 'Bernie Sanders'],
+    ]
+    return (
+      <div className="examples container content">
+        <h4>For example...</h4>
+        <ul>
+          {examples.map(example => {
+            return (
+              <li key={example[0]}>
+                <a
+                  href={this.makeHref(example[0])}
+                  onClick={event => this.load(event, example)}
+                >
+                  <b>{example[0]}</b> by {example[1]}
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    )
+  }
+}
+
+class SearchResult extends React.PureComponent {
   render() {
     const { result } = this.props
     // If it was an ItemLookup, the result.Items.Item is NOT an array
@@ -299,7 +349,9 @@ class SearchResult extends Component {
                 <p className="other-bindings">
                   Also available in{' '}
                   {otherBindings.map((binding, i) => (
-                    <span key={binding} className="tag is-small">{binding}</span>
+                    <span key={binding} className="tag is-small">
+                      {binding}
+                    </span>
                   ))}
                 </p>
                 <p>
@@ -328,5 +380,63 @@ const SearchResultError = ({ error }) => {
         </p>
       </div>
     </article>
+  )
+}
+
+const FAQs = () => {
+  return (
+    <div className="faqs container content">
+      <h2>Frequently Asked Questions</h2>
+      <h3>Is it free?</h3>
+      <p>
+        Yes, <b>absolutely free</b>.<br />
+        You can watch as many books as you like.
+      </p>
+      <h3>Is it safe?</h3>
+      <p>
+        Absolutely! The <b>email address you enter</b>, when you've found your
+        book is <b>never shown or shared</b>.<br />
+        Your email address is <b>never used for any other marketing</b>{' '}
+        purposes.<br />
+        It is stored in a Google Firebase cloud database, secured by Google.
+      </p>
+      <h3>How does it work?</h3>
+      <p>
+        You <b>search for you the book</b> you <b>prefer in Paperback</b> and
+        when you've found it, you click to <b>type in your email address</b>.
+        Then I'll query Amazon.com's database every day to see if it's now
+        available in Paperback. When it's finally available (if ever!){' '}
+        <b>you get an email with a link</b> if you want to buy the book.
+      </p>
+      <h3>Who built this application?</h3>
+      <p>
+        Built by a web developer called{' '}
+        <a href="https://www.peterbe.com/about">Peter Bengtsson</a> in his spare
+        time. He found a book he wanted to buy but decided not to, because the
+        book was only available in Hardcover and Kindle. <br />
+        Instead of manually checking Amazon.com every day, he wrote a program
+        that automates this. Thinking this might be useful to others, he made
+        this application everyone who prefers Paperback over Hardcover (or
+        Kindle).<br />
+        This is <b>not an Amazon.com product</b>. To be able to programmatically
+        query Amazon.com's database he uses the Amazon Affiliates Product
+        Advertising API.
+      </p>
+      <h3>Does Peter make money on this?</h3>
+      <p>
+        Yes and no. If any, a tiny amount. To be able to programmatically query
+        Amazon.com's database you have to use the Amazon Affiliates Product
+        Advertising API whose links always contain an affiliate tag. It won't
+        affect your control or purchasing history.
+      </p>
+      <h3>Only Amazon.com? Not Amazon UK, France, etc.?</h3>
+      <p>
+        For now, only Amazon.com. And only for watching specifically for
+        Paperback bindings of books.<br />
+        Think it should be for other countries and other types of products
+        and/or bindings, then{' '}
+        <a href="https://www.peterbe.com/contact">contact Peter</a>.
+      </p>
+    </div>
   )
 }

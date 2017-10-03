@@ -4,3 +4,27 @@
 .other-bindings span.tag {
     margin-right: 5px;
 }
+
+.your-books {
+    margin-top: 60px;
+    border-top: 1px solid #efefef;
+    padding-top: 30px;
+}
+
+.your-books .image {
+    height: 128px;
+    overflow-y: hidden;
+}
+
+.faqs {
+    margin-top: 130px;
+    border-top: 1px solid #efefef;
+    padding-top: 30px;
+}
+
+.examples {
+    margin-top: 30px;
+}
+.examples h4 {
+    font-style: italic;
+}

@@ -114,9 +114,12 @@ class GetNotified extends React.PureComponent {
     }
     if (!this.state.picked) {
       return (
-        <button type="button" className="button is-primary" onClick={this.pick}>
-          Notify me when available in Paperback
-        </button>
+        <div>
+          <p><b>Not available in Paperback!</b></p>
+          <button type="button" className="button is-primary" onClick={this.pick}>
+            Notify me when available in Paperback
+          </button>
+        </div>
       )
     } else {
       const email = localStorage.getItem('email') || ''
