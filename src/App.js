@@ -83,6 +83,9 @@ class App extends React.Component {
     }
     const ref = this.database.ref(`/user-books/${this.state.currentUser.uid}`)
     // const yourBooks = []
+    if (this.state.yourBooks.length) {
+      this.setState({yourBooks: []})
+    }
     return ref.once('value', snapshot => {
       // const yourBooks = []
       snapshot.forEach(childSnapshot => {
@@ -95,6 +98,7 @@ class App extends React.Component {
             book.key = bookSnapshot.key
             book.item = JSON.parse(book.Raw)
             delete book.Raw
+            console.log('ADDING BOOK', book);
             // yourBooks.push(book)
             this.setState((state, props) => {
               return { yourBooks: [...state.yourBooks, book] }

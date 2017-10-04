@@ -96,15 +96,33 @@ class Search extends React.PureComponent {
     this.searchThrottled = throttle(1600, this.search)
   }
 
-  componentWillReceiveProps(props) {
+  componentWillReceiveProps(nextProps) {
     if (this.state.searchResult) {
-      this.setState({ searchResult: null, fetchError: null })
+      if (nextProps.initialSearch !== this.state.search) {
+        this.refs.search.value = nextProps.initialSearch
+        this.setState({ searchResult: null, fetchError: null })
+      }
+    } else if (this.state.search !== nextProps.initialSearch) {
+      this.refs.search.value = nextProps.initialSearch
+      this.setState({ search: nextProps.initialSearch })
     }
   }
+
+  componentWillUnmount() {
+    this.dismounted = true
+  }
+
   componentDidMount() {
     if (this.props.initialSearch) {
       this.search(this.props.initialSearch)
     }
+    window.setTimeout(() => {
+      if (!this.dismounted) {
+        if (!this.props.yourBooks.length) {
+          this.refs.search.focus()
+        }
+      }
+    }, 1000)
   }
 
   submit = event => {
@@ -132,6 +150,27 @@ class Search extends React.PureComponent {
       if (r.status === 200) {
         r.json().then(response => {
           // console.log('RESPONSE', response)
+          if (
+            response.Items &&
+            response.Items.Item &&
+            Array.isArray(response.Items.Item)
+          ) {
+            // Do some hackish filtering of junk
+            response.Items.Item = response.Items.Item.filter(item => {
+              if (
+                !item.LargeImage &&
+                (!item.ItemAttributes.NumberOfPages ||
+                  !item.ItemAttributes.ListPrice)
+              ) {
+                return false
+              }
+              const title = item.ItemAttributes.Title
+              if (!item.ItemAttributes.ListPrice && title.startsWith('[')) {
+                return false
+              }
+              return true
+            })
+          }
           this.setState({ searchResult: response })
         })
       } else {
@@ -159,6 +198,8 @@ class Search extends React.PureComponent {
 
   onPickedExample = q => {
     this.refs.search.value = q
+    // console.log(this.refs.search)
+    // console.log(this.refs.search.value)
     this.search(q)
     this.props.searchSubmitted(q)
   }
@@ -174,6 +215,7 @@ class Search extends React.PureComponent {
                 ref="search"
                 className="input"
                 onChange={this.onChangeSearch}
+                placeholder="The name of the book you want in Paperback"
               />
             </div>
             <div className="control">
@@ -196,18 +238,16 @@ class Search extends React.PureComponent {
           )}
           {!this.state.search &&
             !this.state.searchResult &&
-            !this.props.yourBooks && (
+            !this.props.yourBooks.length && (
               <ShowExampleSearches onPicked={this.onPickedExample} />
             )}
         </form>
 
-        {this.state.searchResult && (
-          <SearchResult
-            addItem={this.props.addItem}
-            result={this.state.searchResult}
-            currentUser={this.props.currentUser}
-          />
-        )}
+        <SearchResult
+          addItem={this.props.addItem}
+          result={this.state.searchResult}
+          currentUser={this.props.currentUser}
+        />
       </div>
     )
   }
@@ -230,7 +270,7 @@ class ShowExampleSearches extends React.PureComponent {
         'Killing England: The Brutal Struggle for American Independence',
         "Bill O'Reilly"
       ],
-      ['Bernie Sanders Guide to Political Revolution', 'Bernie Sanders'],
+      ['Bernie Sanders Guide to Political Revolution', 'Bernie Sanders']
     ]
     return (
       <div className="examples container content">
@@ -257,9 +297,17 @@ class ShowExampleSearches extends React.PureComponent {
 class SearchResult extends React.PureComponent {
   render() {
     const { result } = this.props
+    if (!result) {
+      return null
+    }
     // If it was an ItemLookup, the result.Items.Item is NOT an array
     if (result.Items.Request.Errors) {
-      return <SearchResultError error={result.Items.Request.Errors.Error} />
+      const error = result.Items.Request.Errors.Error
+      console.log('ERRORS', error)
+      if (error.Code === 'AWS.ECommerceService.NoExactMatches') {
+        return <SearchResultNone message={error.Message} />
+      }
+      return <SearchResultError error={error} />
     }
     if (!Array.isArray(result.Items.Item)) {
       result.Items.Item = [result.Items.Item]
@@ -379,6 +427,21 @@ const SearchResultError = ({ error }) => {
           <b>Message:</b> <code>{error.Message}</code>
           <br />
           <b>Code:</b> <code>{error.Code}</code>
+        </p>
+      </div>
+    </article>
+  )
+}
+
+const SearchResultNone = ({ message }) => {
+  return (
+    <article className="message">
+      <div className="message-body">
+        <p>
+          <b>Nothing found.</b>
+        </p>
+        <p>
+          <b>Message from Amazon:</b> <code>{message}</code>
         </p>
       </div>
     </article>
