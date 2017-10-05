@@ -459,48 +459,30 @@ const FAQs = () => {
       </p>
       <h3>Is it safe?</h3>
       <p>
-        Absolutely! The <b>email address you enter</b>, when you've found your
-        book is <b>never shown or shared</b>.<br />
-        Your email address is <b>never used for any other marketing</b>{' '}
-        purposes.<br />
-        It is stored in a Google Firebase cloud database, secured by Google.
+        Absolutely! The email address you enter,
+        will <b>never be shared or used</b> for any marketing purposes.
       </p>
       <h3>How does it work?</h3>
       <p>
-        You <b>search for you the book</b> you <b>prefer in Paperback</b> and
-        when you've found it, you click to <b>type in your email address</b>.
-        Then I'll query Amazon.com's database every day to see if it's now
-        available in Paperback. When it's finally available (if ever!){' '}
-        <b>you get an email with a link</b> if you want to buy the book.
+        <b>Search</b> for the book you prefer in Paperback.<br/>
+        <b>Enter</b> your email address.<br/>
+        <b>Receive</b> an email when it's available in Paperback.
       </p>
       <h3>Who built this application?</h3>
       <p>
-        Built by a web developer called{' '}
-        <a href="https://www.peterbe.com/about">Peter Bengtsson</a> in his spare
-        time. He found a book he wanted to buy but decided not to, because the
-        book was only available in Hardcover and Kindle. <br />
-        Instead of manually checking Amazon.com every day, he wrote a program
-        that automates this. Thinking this might be useful to others, he made
-        this application everyone who prefers Paperback over Hardcover (or
-        Kindle).<br />
-        This is <b>not an Amazon.com product</b>. To be able to programmatically
-        query Amazon.com's database he uses the Amazon Affiliates Product
-        Advertising API.
-      </p>
-      <h3>Does Peter make money on this?</h3>
-      <p>
-        Yes and no. If any, a tiny amount. To be able to programmatically query
-        Amazon.com's database you have to use the Amazon Affiliates Product
-        Advertising API whose links always contain an affiliate tag. It won't
-        affect your control or purchasing history.
+        Me,{' '}
+        <a href="https://www.peterbe.com/about">Peter Bengtsson</a>, in my spare
+        time. I wanted to buy a book but it was not available in Paperback.
+        I wrote a program that automatically checks every day and thought it
+        would be useful to other people.
       </p>
       <h3>Only Amazon.com? Not Amazon UK, France, etc.?</h3>
       <p>
         For now, only Amazon.com. And only for watching specifically for
         Paperback bindings of books.<br />
         Think it should be for other countries and other types of products
-        and/or bindings, then{' '}
-        <a href="https://www.peterbe.com/contact">contact Peter</a>.
+        and/or bindings? Then{' '}
+        <a href="https://www.peterbe.com/contact">contact me</a>.
       </p>
     </div>
   )
