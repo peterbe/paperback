@@ -67,9 +67,7 @@ class App extends React.Component {
       if (this._picked) {
         const item = this._picked
         this.addItem(item).then(() => {
-          // this._fetchYourBooks()
           delete this._picked
-          // sessionStorage.removeItem('picked')
         })
       }
     } else {
@@ -98,13 +96,25 @@ class App extends React.Component {
             book.key = bookSnapshot.key
             book.item = JSON.parse(book.Raw)
             delete book.Raw
-            console.log('ADDING BOOK', book);
-            // yourBooks.push(book)
             this.setState((state, props) => {
               return { yourBooks: [...state.yourBooks, book] }
             })
           })
       })
+    })
+  }
+
+  _setRemoteError = (error, title) => {
+    const errorCode = error.code
+    const errorMessage = error.message
+    console.log('errorCode:', errorCode)
+    console.log('errorMessage:', errorMessage)
+    this.setState({
+      remoteError: {
+        title: title,
+        code: errorCode,
+        message: errorMessage
+      }
     })
   }
 
@@ -134,18 +144,7 @@ class App extends React.Component {
             // This gets handled
             return error
           }
-          // Handle Errors here.
-          const errorCode = error.code
-          const errorMessage = error.message
-          console.log('errorCode:', errorCode)
-          console.log('errorMessage:', errorMessage)
-          this.setState({
-            remoteError: {
-              title: 'Unable create user by email',
-              code: errorCode,
-              message: errorMessage
-            }
-          })
+          this._setRemoteError(error, 'Unable create user by email')
           return error
         })
     } else {
@@ -176,31 +175,13 @@ class App extends React.Component {
               return this._fetchYourBooks()
             })
             .catch(error => {
-              const errorCode = error.code
-              const errorMessage = error.message
-              console.error('errorCode:', errorCode)
-              console.error('errorMessage:', errorMessage)
-              this.setState({
-                remoteError: {
-                  title: 'Unable to save user and book combination',
-                  code: errorCode,
-                  message: errorMessage
-                }
-              })
+              this._setRemoteError(error, 'Unable to save user and book combination')
+              return error
             })
         })
         .catch(error => {
-          const errorCode = error.code
-          const errorMessage = error.message
-          console.error('errorCode:', errorCode)
-          console.error('errorMessage:', errorMessage)
-          this.setState({
-            remoteError: {
-              title: 'Unable to save book',
-              code: errorCode,
-              message: errorMessage
-            }
-          })
+          this._setRemoteError(error, 'Unable to save book')
+          return error
         })
     }
   }
@@ -224,17 +205,7 @@ class App extends React.Component {
         // Password reset email sent.
       })
       .catch(error => {
-        const errorCode = error.code
-        const errorMessage = error.message
-        console.error('errorCode:', errorCode)
-        console.error('errorMessage:', errorMessage)
-        this.setState({
-          remoteError: {
-            title: 'Unable to save book',
-            code: errorCode,
-            message: errorMessage
-          }
-        })
+        this._setRemoteError(error, 'Send a password reset')
         return error
       })
   }
@@ -247,17 +218,7 @@ class App extends React.Component {
         // Should be signed in now
       })
       .catch(error => {
-        const errorCode = error.code
-        const errorMessage = error.message
-        console.error('errorCode:', errorCode)
-        console.error('errorMessage:', errorMessage)
-        this.setState({
-          remoteError: {
-            title: 'Unable to save book',
-            code: errorCode,
-            message: errorMessage
-          }
-        })
+        this._setRemoteError(error, 'Unable sign in')
         return error
       })
   }
