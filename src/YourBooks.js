@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { Confirmation } from './Common'
 
 class YourBooks extends React.PureComponent {
   render() {
@@ -95,25 +96,4 @@ class YourBook extends React.PureComponent {
       </article>
     )
   }
-}
-
-const Confirmation = ({ onCancel, onConfirm }) => {
-  return (
-    <div>
-      <button
-        type="button"
-        className="button is-small is-primary"
-        onClick={onConfirm}
-      >
-        Yes
-      </button>
-      <button
-        type="button"
-        className="button is-small is-light"
-        onClick={onCancel}
-      >
-        Cancel
-      </button>
-    </div>
-  )
 }

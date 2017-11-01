@@ -145,6 +145,7 @@ class Book extends React.Component {
                 currentUser={this.props.currentUser}
                 yourBooks={this.props.yourBooks}
                 addItem={this.props.addItem}
+                removeItem={this.props.removeItem}
               />
             )}
             <p className="other-bindings">

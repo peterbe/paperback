@@ -75,6 +75,7 @@ class Home extends React.PureComponent {
           initialSearch={this.state.initialSearch}
           currentUser={this.props.currentUser}
           addItem={this.props.addItem}
+          removeItem={this.props.removeItem}
           searchSubmitted={this.searchSubmitted}
           searchUpdated={this.searchUpdated}
           yourBooks={this.props.yourBooks}
@@ -275,6 +276,7 @@ class Search extends React.PureComponent {
 
         <SearchResult
           addItem={this.props.addItem}
+          removeItem={this.props.removeItem}
           result={this.state.searchResult}
           currentUser={this.props.currentUser}
           yourBooks={this.props.yourBooks}
@@ -428,6 +430,7 @@ class SearchResult extends React.PureComponent {
                     item={item}
                     currentUser={this.props.currentUser}
                     addItem={this.props.addItem}
+                    removeItem={this.props.removeItem}
                     inYourBooks={inYourBooks}
                   />
                 )}

@@ -330,6 +330,7 @@ class App extends React.Component {
                       yourBooks={this.state.yourBooks}
                       currentUser={this.state.currentUser}
                       addItem={this.addItem}
+                      removeItem={this.removeItem}
                     />
                   )
                 }}

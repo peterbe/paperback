@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { absoluteUrl } from './Utils'
+import { Confirmation } from './Common'
 
 class GetNotified extends React.PureComponent {
   constructor(props) {
@@ -11,7 +12,8 @@ class GetNotified extends React.PureComponent {
       picked: false,
       done: false,
       loading: false,
-      mustSignIn: false
+      mustSignIn: false,
+      confirmRemove: false
     }
   }
 
@@ -66,33 +68,62 @@ class GetNotified extends React.PureComponent {
   }
 
   alreadyInYourBooks = () => {
-    return this.props.yourBooks && this.props.yourBooks.filter(book => {
-      return this.props.item.ASIN === book.ASIN
-    }).length
+    return (
+      this.props.yourBooks &&
+      this.props.yourBooks.filter(book => {
+        return this.props.item.ASIN === book.ASIN
+      }).length
+    )
   }
+
+  toggleRemoveConfirmation = event => {
+    this.setState({ confirmRemove: !this.state.confirmRemove})
+  }
+
+  deleteItem = event => {
+    event.preventDefault()
+    this.props.removeItem(this.props.item)
+  }
+
 
   render() {
     if (this.state.mustSignIn) {
-      return <div className="notification is-warning">
-        <button className="delete" />
-        <p>
-          <b>You must sign in</b>
-        </p>
-        <p>
-          If you have used your email before, you first have to sign in.
-        </p>
-        <p>
-          <Link to="/signin" className="button is-medium">Sign In</Link>
-        </p>
-      </div>
+      return (
+        <div className="notification is-warning">
+          <button className="delete" />
+          <p>
+            <b>You must sign in</b>
+          </p>
+          <p>If you have used your email before, you first have to sign in.</p>
+          <p>
+            <Link to="/signin" className="button is-medium">
+              Sign In
+            </Link>
+          </p>
+        </div>
+      )
     }
 
     if (this.alreadyInYourBooks()) {
       return (
         <div className="notification is-success">
           <p>
-            <b>You're already watching this book.</b>
+            <b>You're watching this book.</b>
           </p>
+
+          {this.state.confirmRemove ? (
+            <Confirmation
+              onCancel={this.toggleRemoveConfirmation}
+              onConfirm={this.deleteItem}
+              confirmText="Stop watching"
+              cancelText="Close"
+            />
+          ) : (
+            <p>
+              <button className="button is-small is-light"
+                 onClick={this.toggleRemoveConfirmation}>Cancel watch</button>
+            </p>
+          )}
         </div>
       )
     }
@@ -115,8 +146,14 @@ class GetNotified extends React.PureComponent {
     if (!this.state.picked) {
       return (
         <div>
-          <p><b>Not available in Paperback!</b></p>
-          <button type="button" className="button is-primary" onClick={this.pick}>
+          <p>
+            <b>Not available in Paperback!</b>
+          </p>
+          <button
+            type="button"
+            className="button is-primary"
+            onClick={this.pick}
+          >
             Notify me when available in Paperback
           </button>
         </div>
