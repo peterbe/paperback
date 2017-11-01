@@ -6,9 +6,9 @@ import {
   Redirect,
   Link
 } from 'react-router-dom'
-import * as firebase from 'firebase/app'
-import 'firebase/auth'
-import 'firebase/database'
+import firebase from 'firebase'
+// Required for side-effects
+import 'firebase/firestore'
 import Home from './Home'
 import Book from './Book'
 import SignIn from './SignIn'
@@ -37,29 +37,25 @@ class App extends React.Component {
     const config = {
       apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
       authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-      databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL,
+      // databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL,
       projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID
     }
-    const firebaseApp = firebase.initializeApp(config)
-    this.auth = firebaseApp.auth()
+    // const firebaseApp = firebase.initializeApp(config)
+    firebase.initializeApp(config)
+    this.db = firebase.firestore()
+    // this.auth = firebaseApp.auth()
+    this.auth = firebase.auth()
     this.auth.onAuthStateChanged(this.onAuthStateChanged)
-    if (process.env.REACT_APP_FIREBASE_LOGGING === 'true') {
-      firebaseApp.database.enableLogging(true)
-    }
-    this.database = firebaseApp.database()
-  }
-
-  componentDidMount() {
-    // create a mapping of ALL books we have already
-    this.database.ref('/books').on('value', snapshot => {
-      snapshot.forEach(child => {
-        this._allKnownBooks[child.val().ASIN] = child.key
-      })
-    })
+    // if (process.env.REACT_APP_FIREBASE_LOGGING === 'true') {
+    //   firebaseApp.database.enableLogging(true)
+    // } else {
+    //   firebaseApp.database.enableLogging(false)
+    // }
+    // this.database = firebaseApp.database()
   }
 
   onAuthStateChanged = user => {
-    console.log('Current User:', user)
+    // console.log('Current User:', user)
     if (user) {
       this.setState({ currentUser: user }, () => {
         this._fetchYourBooks()
@@ -79,29 +75,27 @@ class App extends React.Component {
     if (!this.state.currentUser) {
       throw new Error('Not logged in')
     }
-    const ref = this.database.ref(`/user-books/${this.state.currentUser.uid}`)
-    // const yourBooks = []
-    if (this.state.yourBooks.length) {
-      this.setState({yourBooks: []})
-    }
-    return ref.once('value', snapshot => {
-      // const yourBooks = []
-      snapshot.forEach(childSnapshot => {
-        var childKey = childSnapshot.key
-        this.database
-          .ref(`/books/${childKey}`)
-          .orderByChild('createdAt')
-          .once('value', bookSnapshot => {
-            const book = bookSnapshot.val()
-            book.key = bookSnapshot.key
-            book.item = JSON.parse(book.Raw)
-            delete book.Raw
-            this.setState((state, props) => {
-              return { yourBooks: [...state.yourBooks, book] }
-            })
+
+    const uid = this.state.currentUser.uid
+    return this.db
+      .collection('user-books')
+      .doc(uid)
+      .collection('books')
+      .onSnapshot(
+        snapshot => {
+          const yourBooks = []
+          snapshot.forEach(doc => {
+            const book = doc.data()
+            yourBooks.push(book)
           })
-      })
-    })
+          return this.setState({ yourBooks: yourBooks })
+        },
+        error => {
+          console.error(error)
+          this._setRemoteError(error, 'Unable to load your books')
+          return error
+        }
+      )
   }
 
   _setRemoteError = (error, title) => {
@@ -148,52 +142,73 @@ class App extends React.Component {
           return error
         })
     } else {
-      // We need to decide whether to first add the book first.
-      const newPostKey =
-        this._allKnownBooks[item.ASIN] || this.database.ref('/books').push().key
 
-      return this.database
-        .ref(`/books/${newPostKey}`)
-        .set({
-          Title: item.ItemAttributes.Title,
-          ASIN: item.ASIN,
-          createdAt: firebase.database.ServerValue.TIMESTAMP,
-          Raw: JSON.stringify(item)
-        })
-        .then(() => {
-          const user = this.state.currentUser
-          return this.database
-            .ref(`/user-books/${user.uid}/${newPostKey}`)
-            .push()
-            .set({
-              startedAt: firebase.database.ServerValue.TIMESTAMP
-            })
-            .then(() => {
-              if (this.state.remoteError) {
-                this.setState({ remoteError: null })
-              }
-              return this._fetchYourBooks()
-            })
-            .catch(error => {
-              this._setRemoteError(error, 'Unable to save user and book combination')
-              return error
-            })
-        })
-        .catch(error => {
-          this._setRemoteError(error, 'Unable to save book')
-          return error
-        })
+      const batch = this.db.batch()
+
+      const newData = {
+        Title: item.ItemAttributes.Title,
+        ASIN: item.ASIN,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        Item: item
+      }
+      const userBookRef = this.db
+        .collection('user-books')
+        .doc(this.state.currentUser.uid)
+        .collection('books')
+        .doc(item.ASIN)
+      batch.set(userBookRef, newData)
+
+      const bookUserRef = this.db
+        .collection('all-books')
+        .doc(item.ASIN)
+        .collection('users')
+        .doc(this.state.currentUser.uid)
+      batch.set(bookUserRef, {
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      })
+
+      return batch.commit().then(() => {
+
+      })
+      .catch(error => {
+        this._setRemoteError(error, 'Batch write failed')
+        return error
+      })
+
     }
   }
 
   removeItem = book => {
     const user = this.state.currentUser
-    this.database
-      .ref(`/user-books/${user.uid}/${book.key}`)
-      .remove()
-      .then(() => {
-        this._fetchYourBooks()
-      })
+    if (!user) {
+      throw new Error('not logged in')
+    }
+    if (!book.ASIN) {
+      throw new Error('no ASIN on book')
+    }
+    const batch = this.db.batch()
+    const userBookRef = this.db
+      .collection('user-books')
+      .doc(user.uid)
+      .collection('books')
+      .doc(book.ASIN)
+    batch.delete(userBookRef)
+
+    const bookUserRef = this.db
+      .collection('all-books')
+      .doc(book.ASIN)
+      .collection('users')
+      .doc(user.uid)
+    batch.delete(bookUserRef)
+
+    return batch.commit().then(() => {
+      console.log('Refs deleted');
+    })
+    .catch(error => {
+      this._setRemoteError(error, 'Batch delete failed')
+      return error
+    })
+
   }
 
   sendPasswordResetEmail = email => {
@@ -227,6 +242,13 @@ class App extends React.Component {
     this.setState({ remoteError: null })
   }
 
+  scrollToYourBooks = event => {
+    const elm = document.querySelector('div.your-books')
+    if (elm && elm.scrollIntoView) {
+      elm.scrollIntoView()
+    }
+  }
+
   render() {
     return (
       <Router>
@@ -247,7 +269,11 @@ class App extends React.Component {
               <div className="navbar-end">
                 {this.state.yourBooks.length && (
                   <div className="navbar-item has-dropdown is-hoverable">
-                    <Link to="/" className="navbar-link">
+                    <Link
+                      to="/"
+                      className="navbar-link"
+                      onClick={this.scrollToYourBooks}
+                    >
                       Your Books ({this.state.yourBooks.length})
                     </Link>
                     <div className="navbar-dropdown is-right">

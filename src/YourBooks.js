@@ -7,6 +7,7 @@ class YourBooks extends React.PureComponent {
     if (!books.length) {
       return null
     }
+
     return (
       <div className="your-books container">
         <h3 className="title">
@@ -52,12 +53,12 @@ class YourBook extends React.PureComponent {
 
   render() {
     const { book } = this.props
-    const item = book.item
+    const item = book.Item
     return (
       <article className="media">
         <figure className="media-left">
           <p className="image is-128x128">
-            <Link to={`/book/${item.ASIN}`}>
+            <Link to={`/book/${book.ASIN}`}>
               <img src={item.MediumImage.URL} alt="Book cover" />
             </Link>
           </p>

@@ -1,8 +1,15 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Redirect } from 'react-router-dom'
 import { getAllBindings } from './Utils'
 import GetNotified from './GetNotified'
 import book256 from './book-256.png'
+
+const isASIN = value => {
+  if (value.length === 10) {
+    return value.search(/[^A-Z0-9]/) === -1
+  }
+  return false
+}
 
 class Book extends React.Component {
   constructor(props) {
@@ -10,6 +17,7 @@ class Book extends React.Component {
 
     this.state = {
       loading: true,
+      redirectTo: null,
       fetchError: null,
       notFound: false,
       item: null
@@ -30,12 +38,18 @@ class Book extends React.Component {
 
   load = asin => {
     console.log('Loading ASIN', asin)
+    if (!isASIN(asin)) {
+      // redirect!
+      const redirectTo = `/?q=${encodeURIComponent(asin)}`
+      return this.setState({redirectTo: redirectTo})
+    }
     // const serverPrefix = process.env.REACT_APP_SERVER_PREFIX
     // let url = serverPrefix + '/search'
     let url = '/api/search'
     url += `?itemid=${encodeURIComponent(asin)}`
+    console.log('Loading ASIN URL', url)
     this.setState({ loading: true })
-    fetch(url).then(r => {
+    return fetch(url).then(r => {
       if (r.status === 200) {
         r.json().then(response => {
           // console.log('RESPONSE', response)
@@ -62,6 +76,9 @@ class Book extends React.Component {
     })
   }
   render() {
+    if (this.state.redirectTo) {
+      return <Redirect to={this.state.redirectTo}/>
+    }
     if (this.state.loading) {
       return (
         <div className="container">

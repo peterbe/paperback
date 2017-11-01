@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { throttle } from 'throttle-debounce'
 import queryString from 'query-string'
@@ -9,21 +9,29 @@ import YourBooks from './YourBooks'
 
 import './Home.css'
 
-class Home extends Component {
+class Home extends React.PureComponent {
   constructor(props) {
     super(props)
 
-    let initialSearch = ''
-    if (this.props.location.search) {
-      const qs = queryString.parse(this.props.location.search)
-      if (qs.q) {
-        initialSearch = qs.q
-      }
-    }
+    // console.log('Home constructor and initialSearch=', this._getSearch(this.props));
     this.state = {
-      initialSearch: initialSearch
+      initialSearch: this._getSearch(this.props)
     }
   }
+
+  _getSearch = props => {
+    if (props.location.search) {
+      const qs = queryString.parse(props.location.search)
+      if (qs.q) {
+        return qs.q
+      }
+    }
+    return ''
+  }
+
+  // componentDidMount() {
+  //   console.log('Home componentDidMount and initialSearch=', this._getSearch(this.props));
+  // }
 
   componentWillMount() {
     document.title = 'Paperback Watch'
@@ -32,6 +40,22 @@ class Home extends Component {
   searchSubmitted = q => {
     this.props.history.push({ search: `?q=${encodeURIComponent(q)}` })
   }
+
+  searchUpdated = q => {
+    // this.props.location.search = `?q=${encodeURIComponent(q)}`
+  }
+
+  componentWillReceiveProps(nextProps) {
+    const search = this._getSearch(nextProps)
+    // console.log('Home componentWillReceiveProps and initialSearch=', search);
+    if (this.state.initialSearch !== search) {
+      this.setState({ initialSearch: search })
+    }
+  }
+
+  // componentDidUpdate() {
+  //   console.log('UPDATE', this.props.location);
+  // }
 
   render() {
     return (
@@ -52,6 +76,7 @@ class Home extends Component {
           currentUser={this.props.currentUser}
           addItem={this.props.addItem}
           searchSubmitted={this.searchSubmitted}
+          searchUpdated={this.searchUpdated}
           yourBooks={this.props.yourBooks}
         />
         {this.props.yourBooks.length ? (
@@ -99,6 +124,9 @@ class Search extends React.PureComponent {
   componentWillReceiveProps(nextProps) {
     if (this.state.searchResult) {
       if (nextProps.initialSearch !== this.state.search) {
+        console.log(
+          `Wipe searchResult because initialSearch=${nextProps.initialSearch}`
+        )
         this.refs.search.value = nextProps.initialSearch
         this.setState({ searchResult: null, fetchError: null })
       }
@@ -114,6 +142,7 @@ class Search extends React.PureComponent {
 
   componentDidMount() {
     if (this.props.initialSearch) {
+      this.refs.search.value = this.props.initialSearch
       this.search(this.props.initialSearch)
     }
     window.setTimeout(() => {
@@ -189,6 +218,7 @@ class Search extends React.PureComponent {
   onChangeSearch = event => {
     // autocomplete?
     const q = this.refs.search.value.trim()
+    this.props.searchUpdated(q)
     if (q) {
       this.searchThrottled(q)
     } else if (this.state.searchResult) {
@@ -247,6 +277,7 @@ class Search extends React.PureComponent {
           addItem={this.props.addItem}
           result={this.state.searchResult}
           currentUser={this.props.currentUser}
+          yourBooks={this.props.yourBooks}
         />
       </div>
     )
@@ -325,6 +356,8 @@ class SearchResult extends React.PureComponent {
     }
 
     // const listedASINs = []
+
+    const yourASINs = this.props.yourBooks.map(book => book.ASIN)
     return (
       <div>
         <h5 className="title is-5">
@@ -355,6 +388,7 @@ class SearchResult extends React.PureComponent {
           const otherBindings = allBindings.filter(
             binding => binding !== 'Paperback'
           )
+          const inYourBooks = yourASINs.includes(item.ASIN)
           return (
             <div className="columns" key={item.ASIN}>
               <div className="column is-one-quarter" style={{ maxWidth: 300 }}>
@@ -394,6 +428,7 @@ class SearchResult extends React.PureComponent {
                     item={item}
                     currentUser={this.props.currentUser}
                     addItem={this.props.addItem}
+                    inYourBooks={inYourBooks}
                   />
                 )}
                 <p className="other-bindings">
@@ -459,22 +494,21 @@ const FAQs = () => {
       </p>
       <h3>Is it safe?</h3>
       <p>
-        Absolutely! The email address you enter,
-        will <b>never be shared or used</b> for any marketing purposes.
+        Absolutely! The email address you enter, will{' '}
+        <b>never be shared or used</b> for any marketing purposes.
       </p>
       <h3>How does it work?</h3>
       <p>
-        <b>Search</b> for the book you prefer in Paperback.<br/>
-        <b>Enter</b> your email address.<br/>
+        <b>Search</b> for the book you prefer in Paperback.<br />
+        <b>Enter</b> your email address.<br />
         <b>Receive</b> an email when it's available in Paperback.
       </p>
       <h3>Who built this application?</h3>
       <p>
-        Me,{' '}
-        <a href="https://www.peterbe.com/about">Peter Bengtsson</a>, in my spare
-        time. I wanted to buy a book but it was not available in Paperback.
-        I wrote a program that automatically checks every day and thought it
-        would be useful to other people.
+        Me, <a href="https://www.peterbe.com/about">Peter Bengtsson</a>, in my
+        spare time. I wanted to buy a book but it was not available in
+        Paperback. I wrote a program that automatically checks every day and
+        thought it would be useful to other people.
       </p>
       <h3>Only Amazon.com? Not Amazon UK, France, etc.?</h3>
       <p>

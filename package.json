@@ -3,12 +3,12 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
-        "firebase": "4.5.0",
-        "query-string": "5.0.0",
+        "firebase": "4.6.0",
+        "query-string": "5.0.1",
         "react": "16.0.0",
         "react-dom": "16.0.0",
         "react-router-dom": "4.2.2",
-        "react-scripts": "1.0.14",
+        "react-scripts": "1.0.16",
         "throttle-debounce": "1.0.1"
     },
     "scripts": {
@@ -21,9 +21,9 @@
     "devDependencies": {
         "aws-lib": "0.3.0",
         "body-parser": "1.18.2",
-        "express": "4.16.1",
+        "express": "4.16.2",
         "husky": "0.14.3",
-        "lint-staged": "4.2.3",
+        "lint-staged": "4.3.0",
         "node-env-file": "0.1.8",
         "prettier": "1.7.4"
     },

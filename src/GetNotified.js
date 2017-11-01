@@ -96,7 +96,7 @@ class GetNotified extends React.PureComponent {
         </div>
       )
     }
-    if (this.state.done) {
+    if (this.state.done || this.props.inYourBooks) {
       return (
         <div className="notification is-success">
           <h3 className="title is-3">Cool! Will let you know.</h3>
