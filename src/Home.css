@@ -28,3 +28,15 @@
 .examples h4 {
     font-style: italic;
 }
+
+.search-result .columns {
+    padding-bottom: 20px;
+    border-bottom: 1px solid #efefef;
+    margin-bottom: 50px;
+}
+.search-result .image {
+    max-width: 200px;
+}
+.search-result .image img {
+    max-width: 170px;
+}

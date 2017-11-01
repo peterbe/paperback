@@ -361,7 +361,7 @@ class SearchResult extends React.PureComponent {
 
     const yourASINs = this.props.yourBooks.map(book => book.ASIN)
     return (
-      <div>
+      <div className="search-result">
         <h5 className="title is-5">
           {thousandFormat(result.Items.TotalResults)} books found
         </h5>
@@ -393,7 +393,7 @@ class SearchResult extends React.PureComponent {
           const inYourBooks = yourASINs.includes(item.ASIN)
           return (
             <div className="columns" key={item.ASIN}>
-              <div className="column is-one-quarter" style={{ maxWidth: 300 }}>
+              <div className="column is-one-quarter image">
                 <Link
                   to={`/book/${item.ASIN}`}
                   title={item.ItemAttributes.Title}
