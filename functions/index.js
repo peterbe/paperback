@@ -27,6 +27,7 @@ exports.search = functions.https.onRequest((req, res) => {
         } else if (itemid) {
           console.log(`Successfully found something for '${itemid}'`)
         }
+        res.setHeader('Cache-Control', 'public, max-age=3600')
         res.json(result)
       }
     })

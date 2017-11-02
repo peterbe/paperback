@@ -356,9 +356,6 @@ class SearchResult extends React.PureComponent {
         result.Items.TotalResults = 0
       }
     }
-
-    // const listedASINs = []
-
     const yourASINs = this.props.yourBooks.map(book => book.ASIN)
     return (
       <div className="search-result">

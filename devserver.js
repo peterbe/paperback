@@ -41,9 +41,11 @@ app.get('/api/search', function(req, res) {
   if (keywords || itemid) {
     if (keywords && cache[keywords]) {
       console.log('Cache hit (keywords)!', keywords)
+      res.setHeader('Cache-Control', 'public, max-age=3600')
       res.json(cache[keywords])
     } else if (itemid && cache[itemid]) {
       console.log('Cache hit (itemid)!', itemid)
+      res.setHeader('Cache-Control', 'public, max-age=3600')
       res.json(cache[itemid])
     } else {
       const params = { keywords, itemid }
@@ -58,6 +60,7 @@ app.get('/api/search', function(req, res) {
             console.log(`Successfully found something for '${itemid}'`)
             cache[itemid] = result
           }
+          res.setHeader('Cache-Control', 'public, max-age=3600')
           res.json(result)
         }
       })
