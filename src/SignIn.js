@@ -23,6 +23,7 @@ class SignIn extends React.Component {
         }
       })
       this.setState({ email: email })
+      this.refs.email.value = email
     }
   }
 
