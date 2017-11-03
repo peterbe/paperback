@@ -1,6 +1,12 @@
 {
-    "database": {
-        "rules": "database.rules.json"
+    "ignore": [
+        "firebase.json",
+        "database-rules.json",
+        "storage.rules",
+        "functions"
+    ],
+    "firestore": {
+        "rules": "firestore.rules"
     },
     "hosting": {
         "public": "build",
