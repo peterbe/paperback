@@ -1,10 +1,4 @@
 {
-    "ignore": [
-        "firebase.json",
-        "database-rules.json",
-        "storage.rules",
-        "functions"
-    ],
     "firestore": {
         "rules": "firestore.rules"
     },
