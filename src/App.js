@@ -142,7 +142,6 @@ class App extends React.Component {
           return error
         })
     } else {
-
       const batch = this.db.batch()
 
       const newData = {
@@ -158,23 +157,26 @@ class App extends React.Component {
         .doc(item.ASIN)
       batch.set(userBookRef, newData)
 
-      const bookUserRef = this.db
-        .collection('all-books')
-        .doc(item.ASIN)
+      const bookRef = this.db.collection('all-books').doc(item.ASIN)
+      batch.set(bookRef, {
+        Title: item.ItemAttributes.Title,
+        nextCheckAt: firebase.firestore.FieldValue.serverTimestamp(),
+        Item: item
+      })
+      const bookUserRef = bookRef
         .collection('users')
         .doc(this.state.currentUser.uid)
       batch.set(bookUserRef, {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       })
 
-      return batch.commit().then(() => {
-
-      })
-      .catch(error => {
-        this._setRemoteError(error, 'Batch write failed')
-        return error
-      })
-
+      return batch
+        .commit()
+        .then(() => {})
+        .catch(error => {
+          this._setRemoteError(error, 'Batch write failed')
+          return error
+        })
     }
   }
 
@@ -201,14 +203,15 @@ class App extends React.Component {
       .doc(user.uid)
     batch.delete(bookUserRef)
 
-    return batch.commit().then(() => {
-      console.log('Refs deleted');
-    })
-    .catch(error => {
-      this._setRemoteError(error, 'Batch delete failed')
-      return error
-    })
-
+    return batch
+      .commit()
+      .then(() => {
+        console.log('Refs deleted')
+      })
+      .catch(error => {
+        this._setRemoteError(error, 'Batch delete failed')
+        return error
+      })
   }
 
   sendPasswordResetEmail = email => {

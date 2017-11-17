@@ -11,6 +11,10 @@
                 "function": "search"
             },
             {
+                "source": "/cron/checkAll",
+                "function": "checkAll"
+            },
+            {
                 "source": "**",
                 "destination": "/index.html"
             }
